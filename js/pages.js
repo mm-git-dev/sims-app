@@ -327,7 +327,7 @@
   };
   App.pages['admin-open'] = {
     render: function (view, r) {
-      return api('openAdmin', { t: r.q.t }).then(function () { toast('Admin unlocked.'); App.me.adminUnlocked = true; App.go('#/admin'); }).catch(function (e) { view.innerHTML = '<div class="card bad"><h2>Admin link</h2><p class="err">' + esc(e.message) + '</p><button class="btn pri" onclick="location.hash=\'#/admin\'">Back to Admin</button></div>'; });
+      return api('openAdmin', { t: r.q.t }).then(function () { toast('Admin unlocked.'); App.me.adminUnlocked = true; location.hash = '#/admin'; location.reload(); }).catch(function (e) { view.innerHTML = '<div class="card bad"><h2>Admin link</h2><p class="err">' + esc(e.message) + '</p><button class="btn pri" onclick="location.hash=\'#/admin\'">Back to Admin</button></div>'; });
     }
   };
 

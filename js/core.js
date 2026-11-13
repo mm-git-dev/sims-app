@@ -354,7 +354,7 @@ var SIMS_CORE = (function () {
   function allPerms() { return PERMS.always.concat(PERMS.defaults, PERMS.extra); }
   function can(user, perm) {
     if (!user) return false;
-    if (user.admin) return true;
+    if (user.admin) return !user.adminLocked || perm === 'partBasic' || perm === 'partLocation';
     if (PERMS.always.indexOf(perm) >= 0) return true;
     return (user.perms || []).indexOf(perm) >= 0;
   }
