@@ -168,5 +168,21 @@ var SIMSPrint = (function () {
     return render(pagesHtml).then(function () { return new Promise(function (res) { setTimeout(function () { window.print(); res(); }, 60); }); });
   }
 
-  return { docketSheet: docketSheet, rackSheet: rackSheet, packingSheet: packingSheet, render: render, print: print, applyFit: applyFit, esc: esc };
+  // ---------- Transit List (plain list; the brief gives no fixed layout) ----------
+  function transitSheet(s) {
+    var items = s.rows.map(function (l) { return { l: l, h: ROW }; });
+    return build({
+      head1H: 28, widths: [14, 30, 6, 13, 13, 12, 12], headings: ['Part No', 'Description', 'Qty', 'Invoice', 'LR', 'LR date', 'Mark'],
+      items: items, footerLeft: 'SIMS · ' + s.title,
+      headHtml: function () {
+        return '<div class="sp-tag">' + esc(s.title) + '</div><div class="sp-sub" style="margin-top:1.4mm">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + ' · ' + s.rows.length + ' lines</div>';
+      },
+      rowHtml: function (it) {
+        var l = it.l;
+        return '<tr><td class="fit pn">' + esc(l.part) + '</td><td class="desc fit">' + esc(l.desc) + '</td><td class="c fit">' + esc(l.qty) + '</td><td class="fit">' + esc(l.invoice) + '</td><td class="fit">' + esc(l.lr) + '</td><td class="fit">' + (l.lrDate ? esc(C.fmtDay(l.lrDate)) : '—') + (l.state === 'overdue' ? ' !' : '') + '</td><td class="fit">' + esc(l.mark || '') + '</td></tr>';
+      },
+      trailerH: 0, trailerHtml: function () { return ''; }
+    });
+  }
+  return { docketSheet: docketSheet, transitSheet: transitSheet, rackSheet: rackSheet, packingSheet: packingSheet, render: render, print: print, applyFit: applyFit, esc: esc };
 })();

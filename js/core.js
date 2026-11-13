@@ -317,6 +317,21 @@ var SIMS_CORE = (function () {
     return { state: open ? 'open' : 'closed', stillShort: still, late: late };
   }
 
+  // ---------- party order status ----------
+  /** Section of a party line: packed | awaiting (arrived) | early (GRN'd before the docket arrived; also awaiting) | overdue | transit. */
+  function partySection(l, arrived, packed, now) {
+    if (packed) return 'packed';
+    if (arrived) return 'awaiting';
+    if (l.grnDate) return 'early';
+    if (l.lrDate && now - l.lrDate > 20 * 86400000) return 'overdue';
+    return 'transit';
+  }
+  /** Expected arrival = LR date + 8 days; overdue after 20 days; no LR date = not yet booked. */
+  function transitState(lrDate, now) {
+    if (!lrDate) return 'notBooked';
+    return now - lrDate > 20 * 86400000 ? 'overdue' : 'transit';
+  }
+
   // ---------- permissions ----------
   var PERMS = {
     always: ['partBasic'],
@@ -415,7 +430,7 @@ var SIMS_CORE = (function () {
     fmtINR: fmtINR, fmtLakh: fmtLakh, lineValue: lineValue, estimateAmount: estimateAmount,
     comparePart: comparePart, sortByPart: sortByPart, location: location, GROUP_TITLES: GROUP_TITLES,
     partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, detectGrn: detectGrn,
-    grnProgress: grnProgress, remarkText: remarkText, shortBoxes: shortBoxes, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
+    grnProgress: grnProgress, partySection: partySection, transitState: transitState, remarkText: remarkText, shortBoxes: shortBoxes, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
     PERMS: PERMS, PERM_INFO: PERM_INFO, allPerms: allPerms, can: can, officeOpen: officeOpen, canNow: canNow,
     expectedDate: expectedDate, isOverdue: isOverdue, parsePackingList: parsePackingList, inv4: inv4,
     HEAD_TRANSIT: HEAD_TRANSIT, HEAD_PRICE: HEAD_PRICE, HEAD_RACK: HEAD_RACK

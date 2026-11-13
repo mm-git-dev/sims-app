@@ -81,6 +81,7 @@ table.dt { width: 100%; border-collapse: collapse; font-size: 15px; }
 table.dt th { text-align: left; color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; padding: 8px 6px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
 table.dt td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .tscroll { overflow-x: auto; }
+table.sticky1 td:first-child, table.sticky1 th:first-child { position: sticky; left: 0; background: var(--card); z-index: 1; }
 .stat { color: var(--muted); font-size: 15px; padding: 3px 0; }
 .big-num { font-size: 40px; font-weight: 700; }
 .err { color: var(--bad); }

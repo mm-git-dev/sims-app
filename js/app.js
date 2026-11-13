@@ -236,7 +236,7 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1 };
 
   function route() {
@@ -288,6 +288,8 @@
     if (can('pendingItems')) m.push({ k: 'pending-items', t: 'Pending Items', h: '#/pending-items' });
     if (can('pendingClaims')) m.push({ k: 'pending-claims', t: 'Pending Claims', h: '#/pending-claims' });
     if (can('missedClaims')) m.push({ k: 'missed-claims', t: 'Missed Claims', h: '#/missed-claims' });
+    if (can('partyOrders')) m.push({ k: 'party-orders', t: 'Party Orders', h: '#/party-orders' });
+    if (can('transitList')) m.push({ k: 'transit', t: 'Transit List', h: '#/transit' });
     if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
     return m;
   }
