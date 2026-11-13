@@ -201,6 +201,14 @@
   function clearCaches() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('sims.c.') === 0) localStorage.removeItem(k); }); } catch (e) { /* ignore */ } }
 
   // ---------- permissions ----------
+  /** Shown instead of "no permission" while an Admin session is still locked. */
+  App.lockCard = function (view) {
+    view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>Tap the button and SIMS will send a one-time link (valid for 10 minutes) to the admin email. Open that link on this device and everything unlocks. Until then only scanning works.</p><button class="btn pri" id="lkReq">Send me the admin link</button><div id="lkMsg" class="muted" style="margin-top:10px"></div></div>';
+    $('#lkReq', view).onclick = function () {
+      var b = this; b.disabled = true; b.textContent = 'Sending…';
+      api('requestAdmin', { device: App.deviceInfo().type }).then(function () { b.textContent = 'Link sent'; $('#lkMsg', view).textContent = 'Link sent to the admin email. Open it on this device; you will come back to the app unlocked.'; }).catch(function (e) { b.disabled = false; b.textContent = 'Send me the admin link'; $('#lkMsg', view).innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+    };
+  };
   App.can = function (p) { return !!App.me && C.can(App.me.user, p); };
   App.open = function () { return !!App.me && (App.me.open || App.me.user.admin); };
   App.canNow = function (p) { return App.can(p) && (App.open() || p === 'partBasic'); };
@@ -245,6 +253,7 @@
     var view = $('#page'); view.scrollTop = 0; view.innerHTML = '<div class="center muted" style="padding:40px"><span class="spinner"></span></div>';
     $('#side').classList.remove('open'); var sc = $('#scrim'); if (sc) sc.classList.add('hide');
     var gate = pg.perm && !App.canNow(pg.perm) ? pg.perm : null;
+    if (App.me.user.adminLocked && App.page !== 'admin' && App.page !== 'admin-open' && App.page !== 'home' && App.page !== 'part') { App.lockCard(view); return; }
     if (!App.open() && App.page !== 'home' && App.page !== 'part') { view.innerHTML = closedHtml(); return; }
     if (gate) { view.innerHTML = '<div class="card">You do not have permission to open this page.</div>'; return; }
     Promise.resolve(pg.render(view, r)).catch(function (e) {
@@ -273,12 +282,12 @@
   };
   App.ICON = ICON;
   function menuItems() {
-    var m = [{ k: 'home', t: 'Home', h: '#/home' }];
-    if (App.can('docketGrn')) m.push({ k: 'docket-grn', t: 'Docket GRN', h: '#/docket-grn' });
-    if (App.can('combinedGrn')) m.push({ k: 'combined', t: 'Combined GRN', h: '#/combined' });
-    if (App.can('pendingItems')) m.push({ k: 'pending-items', t: 'Pending Items', h: '#/pending-items' });
-    if (App.can('pendingClaims')) m.push({ k: 'pending-claims', t: 'Pending Claims', h: '#/pending-claims' });
-    if (App.can('missedClaims')) m.push({ k: 'missed-claims', t: 'Missed Claims', h: '#/missed-claims' });
+    var m = [{ k: 'home', t: 'Home', h: '#/home' }], can = function (p) { return App.me.user.adminLocked || App.can(p); };
+    if (can('docketGrn')) m.push({ k: 'docket-grn', t: 'Docket GRN', h: '#/docket-grn' });
+    if (can('combinedGrn')) m.push({ k: 'combined', t: 'Combined GRN', h: '#/combined' });
+    if (can('pendingItems')) m.push({ k: 'pending-items', t: 'Pending Items', h: '#/pending-items' });
+    if (can('pendingClaims')) m.push({ k: 'pending-claims', t: 'Pending Claims', h: '#/pending-claims' });
+    if (can('missedClaims')) m.push({ k: 'missed-claims', t: 'Missed Claims', h: '#/missed-claims' });
     if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
     return m;
   }
