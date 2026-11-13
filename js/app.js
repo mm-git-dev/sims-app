@@ -95,6 +95,13 @@
     L.price = new Map(); (pr || []).forEach(function (r) { L.price.set(r[0], { part: r[0], desc: r[1], mrp: r[2], ndp: r[3], tax: r[4] }); });
     L.rack = new Map(); (rk || []).forEach(function (r) { L.rack.set(r[0], [r[1], r[2]]); });
     L.transitBy = new Map(); (tr || []).forEach(function (r) { var o = { invoice: r[0], part: r[1], desc: r[2], qty: r[3], lr: r[4], lrDate: r[5], po: r[6], rack: r[7], bin: r[8] }; if (!L.transitBy.has(o.part)) L.transitBy.set(o.part, []); L.transitBy.get(o.part).push(o); });
+    // docket and invoice numbers for as-you-type search (open transit lines only)
+    L.lrIdx = new Map(); L.invIdx = new Map();
+    (tr || []).forEach(function (r) {
+      var lr = r[4], inv = r[0];
+      if (lr) { var e = L.lrIdx.get(lr); if (!e) { e = { lr: lr, lines: 0, lrDate: r[5] }; L.lrIdx.set(lr, e); } e.lines++; }
+      if (inv) { var v = L.invIdx.get(inv); if (!v) { v = { invoice: inv, lr: lr, lines: 0 }; L.invIdx.set(inv, v); } v.lines++; }
+    });
   }
   App.loadCachedLists = function () {
     return idbGet('lists').then(function (c) {
@@ -382,6 +389,21 @@
     App.lists.price.forEach(function (v, k) { if (out.length < 25 && k.toUpperCase().indexOf(q) === 0) out.push(v); });
     return out;
   }
+  /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
+  function docketSuggestions(q) {
+    var out = { dockets: [], invoices: [] };
+    q = q.replace(/[ \t]+/g, '');
+    if (!App.can('searchDockets') || !App.open() || !/^[0-9]{3,}$/.test(q) || !App.lists.lrIdx) return out;
+    var st = {}; try { var c = JSON.parse(ls(cacheKey('openDockets')) || 'null'); if (c) c.d.dockets.forEach(function (x) { st[x.lr] = x.status; }); } catch (e) { /* none */ }
+    function scan(map, key, list, mk) {
+      var starts = [], inside = [];
+      map.forEach(function (v, k) { var i = k.indexOf(q); if (i === 0) starts.push(v); else if (i > 0 && q.length >= 4) inside.push(v); });
+      starts.concat(inside).slice(0, 8).forEach(function (v) { list.push(mk(v)); });
+    }
+    scan(App.lists.lrIdx, 'lr', out.dockets, function (v) { return { lr: v.lr, lines: v.lines, status: st[v.lr] || 'In transit', lrDate: v.lrDate }; });
+    scan(App.lists.invIdx, 'invoice', out.invoices, function (v) { return { invoice: v.invoice, lr: v.lr, lines: v.lines, status: st[v.lr] || 'In transit' }; });
+    return out;
+  }
   function openSearch() {
     var o = overlay('Search SIMS', '<input type="search" id="sq" placeholder="Part number, LR, invoice or case number" autocomplete="off" autocapitalize="characters"><div id="sres" style="margin-top:12px"></div>');
     var inp = $('#sq', o.el), res = $('#sres', o.el);
@@ -394,6 +416,11 @@
       var q = inp.value.trim(); if (!q) { showRecent(); return; }
       var sug = partSuggestions(q), html = '';
       if (sug.length) html += '<h3>Parts</h3><div class="list">' + sug.map(function (p) { return '<div class="item click" data-part="' + esc(p.part) + '"><div class="grow"><div class="bold mono">' + esc(p.part) + '</div><div class="muted small">' + esc(p.desc) + '</div></div></div>'; }).join('') + '</div>';
+      var ds = docketSuggestions(q), partsHtml = html, dkHtml = '';
+      if (ds.dockets.length) dkHtml += '<h3>Dockets</h3><div class="list">' + ds.dockets.map(function (d) { return '<div class="item click" data-dk="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + (d.lrDate ? ' · LR date ' + esc(C.fmtDay(d.lrDate)) : '') + '</div></div><span class="chip">' + esc(d.status) + '</span></div>'; }).join('') + '</div>';
+      if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-dk="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? '<span class="chip">' + esc(d.status) + '</span>' : '') + '</div>'; }).join('') + '</div>';
+      if (App.can('searchDockets') && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search all dockets, including finished ones.</p>';
+      html = dkHtml + partsHtml;
       res.innerHTML = html;
       bindRes();
       if (!go) return;
@@ -414,7 +441,7 @@
       else { res.innerHTML = '<div class="card">Part number not found.</div>'; App.feedback(false); }
     }
     function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
-    function bindRes() { $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
+    function bindRes() { $$('[data-dk]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/docket/' + encodeURIComponent(d.dataset.dk)); }; }); $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
     inp.addEventListener('input', function () { run(false); });
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') run(true); });
     showRecent(); setTimeout(function () { inp.focus(); }, 50);
