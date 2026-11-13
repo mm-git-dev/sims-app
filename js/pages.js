@@ -116,21 +116,21 @@
             step.innerHTML = '<div class="card ok"><h2 style="margin-top:0">Done</h2><p>Docket <span class="mono bold">' + esc(d.sheet.lr) + '</span> ' + (args.reprint ? 'reprinted.' : 'marked <b>Arrived</b>.') + '</p><div class="row"><button class="btn pri" id="nextD">Next docket</button><button class="btn" id="againD">Print again</button></div></div>';
             $('#nextD').onclick = function () { step.innerHTML = ''; inp.value = ''; inp.focus(); };
             $('#againD').onclick = function () { printPages(pages); };
-            loadOpen();
+            loadOpen(true);
           });
         }).catch(function (e) { busy(btn, false); if (e.code === 'printed') { lookup(args.lr); } else toast(e.message, 4000); });
       }
       var openSeq = 0;
-      function loadOpen() {
+      function loadOpen(fresh) {
         var my = ++openSeq;
-        api('openDockets').then(function (d) {
+        App.swr('openDockets', function () { return api('openDockets'); }, function (d) {
           var el = $('#dopen'); if (!el || my !== openSeq) return;
           if (!d.dockets.length) { el.innerHTML = '<span class="muted">No open dockets.</span>'; return; }
           el.innerHTML = '<div class="list">' + d.dockets.map(function (x) {
             return '<div class="item click" data-lr="' + esc(x.lr) + '"><div class="grow"><div class="bold mono">' + esc(x.lr) + '</div><div class="small muted">' + esc(stamp(x.arrivedAt)) + ' · ' + x.done + ' of ' + x.total + ' lines GRN\'d</div><div style="margin-top:4px">' + flagChips(x.flags) + '</div></div>' + chipFor(x.status) + '</div>';
           }).join('') + '</div>';
           $$('[data-lr]', el).forEach(function (d) { d.onclick = function () { App.go('#/docket/' + encodeURIComponent(d.dataset.lr)); }; });
-        }).catch(function (e) { var el = $('#dopen'); if (el) el.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+        }, { fresh: fresh }).catch(function (e) { var el = $('#dopen'); if (el) el.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
       }
       loadOpen();
       if (r.q.lr) lookup(r.q.lr); else inp.focus();
@@ -189,8 +189,8 @@
     render: function (view) {
       view.innerHTML = '<div id="cbody"><div class="center muted" style="padding:30px"><span class="spinner"></span></div></div>';
       var addDraft = { lr: '', boxes: '', dm: '-1', sh: '-1', also: false };
-      function load() {
-        return api('arrivedDockets').then(function (d) { draw(d); });
+      function load(fresh) {
+        return App.swr('arrivedDockets', function () { return api('arrivedDockets'); }, function (d) { draw(d); }, { fresh: fresh });
       }
       function selCount() { return Object.keys(sel).filter(function (k) { return sel[k]; }).length; }
       function row(x, comb) {
@@ -223,7 +223,7 @@
           if (!lrs.length) { toast('Tick at least one docket.'); return; }
           var btn = $('#cPrint'); busy(btn, true, 'Preparing…');
           api('combinedPrint', { lrs: lrs, groups: groups }).then(function (r) {
-            return printRackSheets(r.sheets).then(function () { sel = {}; toast('Batch ' + r.batch.name + ' printed.'); return load(); });
+            return printRackSheets(r.sheets).then(function () { sel = {}; toast('Batch ' + r.batch.name + ' printed.'); return load(true); });
           }).catch(function (e) { busy(btn, false); toast(e.message, 4500); });
         }
         $('#cPrint').onclick = function () { doCombine(['A', 'B', 'C']); };
@@ -241,7 +241,7 @@
           api('addToBatch', { lr: lr, boxes: boxes, damaged: dm, short: sh, alsoPrint: addDraft.also }).then(function (r) {
             sel[r.lr] = true; var also = r.sheet; addDraft = { lr: '', boxes: '', dm: '-1', sh: '-1', also: false };
             toast(r.already ? 'Docket ' + r.lr + ' was already printed; ticked.' : 'Docket ' + r.lr + ' added and ticked.');
-            return load().then(function () { if (also) return printPages(SIMSPrint.docketSheet(also, siteBase())); });
+            return load(true).then(function () { if (also) return printPages(SIMSPrint.docketSheet(also, siteBase())); });
           }).catch(function (e) { busy(btn, false); toast(e.message, 4500); });
         };
       }

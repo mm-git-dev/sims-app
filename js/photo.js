@@ -71,7 +71,7 @@
       ctx.fillStyle = 'rgba(0,0,0,.55)';
       ctx.fillRect(0, 0, cv.width, y); ctx.fillRect(0, y + h, cv.width, cv.height - y - h); ctx.fillRect(0, y, x, h); ctx.fillRect(x + w, y, cv.width - x - w, h);
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = '#FFC400'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+      var cs = getComputedStyle(document.documentElement); ctx.fillStyle = cs.getPropertyValue('--accent').trim() || '#FFC400'; ctx.strokeStyle = cs.getPropertyValue('--accent-text').trim() || '#000'; ctx.lineWidth = 2;
       [[x, y], [x + w / 2, y], [x + w, y], [x, y + h / 2], [x + w, y + h / 2], [x, y + h], [x + w / 2, y + h], [x + w, y + h]].forEach(function (p) { ctx.beginPath(); ctx.rect(p[0] - 11, p[1] - 11, 22, 22); ctx.fill(); ctx.stroke(); });
       info();
     }

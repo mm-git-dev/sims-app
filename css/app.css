@@ -6,16 +6,18 @@
   --side: 248px;
 }
 :root[data-theme="light"] {
-  --bg: #FFFFFF; --surface: #FFFFFF; --surface2: #F4F4F2; --line: #D9D9D6;
-  --text: #1A1A1A; --text2: #3D3D3D; --muted: #5E5E5E;
-  --accent: #FFC400; --accent-text: #000000;
-  --info: #0A5BC4; --ok: #12824A; --warn: #B45309; --bad: #C62828;
+  /* Light theme keeps the original blue palette */
+  --bg: #F4F5F7; --surface: #FFFFFF; --surface2: #EEF0F3; --line: #D9DCE1;
+  --text: #15171A; --text2: #3F4650; --muted: #5D6470;
+  --accent: #0A62D0; --accent-text: #FFFFFF;
+  --info: #0A62D0; --ok: #12924C; --warn: #B87500; --bad: #C62828;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: 'Barlow', system-ui, sans-serif; font-weight: 500; font-size: 16px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-a { color: var(--text); text-decoration: underline; }
+a { color: var(--accent); }
+:root:not([data-theme="light"]) a { color: var(--text); text-decoration: underline; }
 .hide { display: none !important; }
 
 #app { display: flex; height: 100%; }
@@ -26,6 +28,7 @@ a { color: var(--text); text-decoration: underline; }
 #side nav { display: flex; flex-direction: column; padding: 6px 8px; gap: 2px; flex: 1; }
 #side a.nav, #side button.nav { display: block; padding: 12px 14px; border-radius: 10px; color: var(--text); text-decoration: none; background: none; border: 0; text-align: left; font-size: 17px; }
 #side a.nav.on { background: var(--accent); color: var(--accent-text); font-weight: 700; }
+:root[data-theme="light"] #side a.nav.on { background: var(--surface2); color: var(--text); }
 #side .sep { height: 1px; background: var(--line); margin: 8px 6px; }
 #main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 #top { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 5; }

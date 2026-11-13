@@ -85,7 +85,7 @@
   App.api = api;
 
   function endSession(msg, takeover) {
-    App.token = ''; ls('sims.token', null); App.me = null;
+    App.token = ''; ls('sims.token', null); App.me = null; clearCaches();
     showLogin(msg);
   }
 
@@ -120,6 +120,30 @@
       if (App.page === 'home') App.pages.home.tick && App.pages.home.tick();
     }).catch(function () { /* offline: keep cache */ });
   };
+
+  // ---------- instant pages: show the last copy at once, refresh quietly ----------
+  function cacheKey(k) { return 'sims.c.' + (App.me ? App.me.user.id : '') + '.' + k; }
+  /** fetchFn() -> promise of data. paint(data) draws it. Shows the saved copy immediately, then the fresh one if it changed.
+      opts.fresh = true skips the saved copy (use after the user changed something). */
+  App.swr = function (key, fetchFn, paint, opts) {
+    var ck = cacheKey(key), cached = null, shown = null;
+    try { cached = JSON.parse(ls(ck) || 'null'); } catch (e) { cached = null; }
+    if (cached && !(opts && opts.fresh)) { shown = JSON.stringify(cached.d); try { paint(cached.d); } catch (e) { shown = null; } }
+    return fetchFn().then(function (d) {
+      var s = JSON.stringify(d); ls(ck, JSON.stringify({ d: d, t: Date.now() }));
+      if (s !== shown) paint(d);
+      return d;
+    }, function (e) { if (shown === null) throw e; });
+  };
+  /** Fetch the lists the busiest pages need, in the background, so they open instantly. */
+  App.prefetch = function () {
+    if (!App.me || !App.open()) return;
+    var jobs = [];
+    if (App.can('docketGrn')) jobs.push(['openDockets', 'openDockets']);
+    if (App.can('combinedGrn')) jobs.push(['arrivedDockets', 'arrivedDockets']);
+    jobs.reduce(function (p, j) { return p.then(function () { return api(j[0], {}, { quiet: true }).then(function (d) { ls(cacheKey(j[1]), JSON.stringify({ d: d, t: Date.now() })); }).catch(function () {}); }); }, Promise.resolve());
+  };
+  function clearCaches() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('sims.c.') === 0) localStorage.removeItem(k); }); } catch (e) { /* ignore */ } }
 
   // ---------- permissions ----------
   App.can = function (p) { return !!App.me && C.can(App.me.user, p); };
@@ -287,7 +311,7 @@
   }
   function applyMe(me) { App.me = me; setTheme(me.theme || 'dark', false); ls('sims.me', JSON.stringify(me)); }
   function boot2() {
-    return App.loadCachedLists().then(function () { route(); App.refreshLists(); });
+    return App.loadCachedLists().then(function () { route(); App.refreshLists(); setTimeout(App.prefetch, 1500); });
   }
 
   // ---------- Search ----------
@@ -500,7 +524,7 @@
     api('me', {}, { quiet: false }).then(function (m) { var first = !App.me; applyMe(m); if (first) return boot2(); renderShell(); refreshMenu(); }).catch(function (e) {
       if (e.code === 'net') { if (!App.me) { $('#boot') && ($('#boot').innerHTML = '<div class="card">' + esc(e.message) + '</div>'); } }
     });
-    setInterval(function () { App.refreshLists(); }, 5 * 60000);
+    setInterval(function () { App.refreshLists(); App.prefetch(); }, 5 * 60000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) App.refreshLists(); });
   }
   App.start = start;
