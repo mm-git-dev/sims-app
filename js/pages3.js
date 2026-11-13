@@ -27,6 +27,7 @@
       $$('.tabs button', view).forEach(function (b) { b.onclick = function () { App.go('#/party-orders/' + b.dataset.t + (mark && b.dataset.t === 'status' ? '?mark=' + encodeURIComponent(mark) : '')); }; });
       var body = $('#poBody', view);
 
+      function take(x) { if (x && x.list) { data = x.list; try { localStorage.setItem('sims.c.' + App.me.user.id + '.orders', JSON.stringify({ d: data, t: Date.now() })); } catch (e) { } if (tab === 'numbers') { drawNumbers(); } else drawStatus(); } else loadOrders(true); }
       function loadOrders(fresh) { return App.swr('orders', function () { return api('orders'); }, function (d) { data = d; App.keepState(body, function () { if (tab === 'numbers') drawNumbers(); else drawStatus(); }); }, { fresh: fresh }).catch(function (e) { body.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; }); }
 
       // ---------- Order Numbers ----------
@@ -61,12 +62,12 @@
           if (!args.pso.trim()) { toast('Enter the order number.'); $('#aPso').focus(); return; }
           if (!args.mark.trim()) { toast('Enter the private mark.'); mk.focus(); return; }
           busy(b, true, 'Adding…');
-          api('orderAdd', args).then(function (x) { toast(x.pso + ' added under ' + x.mark + '.'); App.invalidate && App.invalidate('orders'); loadOrders(true); }).catch(function (e) { busy(b, false); $('#aMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+          api('orderAdd', args).then(function (x) { toast(x.pso + ' added under ' + x.mark + '.'); take(x); }).catch(function (e) { busy(b, false); $('#aMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
         };
         $$('[data-al]', body).forEach(function (c) { c.onchange = function () { api('markAlert', { mark: c.dataset.al, on: c.checked }).then(function () { toast('Alert on GRN ' + (c.checked ? 'on' : 'off') + ' for ' + c.dataset.al + '.'); }).catch(function (e) { c.checked = !c.checked; toast(e.message); }); }; });
         $$('[data-ed]', body).forEach(function (b) { b.onclick = function () { editOrder(data.orders.filter(function (o) { return o.pso === b.dataset.ed; })[0]); }; });
         $$('[data-cl]', body).forEach(function (b) { b.onclick = function () { closeOrder(b.dataset.cl); }; });
-        $$('[data-ro]', body).forEach(function (b) { b.onclick = function () { api('orderReopen', { pso: b.dataset.ro }).then(function () { toast('Reopened.'); loadOrders(true); }).catch(function (e) { toast(e.message); }); }; });
+        $$('[data-ro]', body).forEach(function (b) { b.onclick = function () { api('orderReopen', { pso: b.dataset.ro }).then(function (x) { toast('Reopened.'); take(x); }).catch(function (e) { toast(e.message); }); }; });
       }
       function editOrder(o) {
         var dt = new Date(o.orderDate).toISOString().slice(0, 10);
@@ -74,7 +75,7 @@
           $('[data-n]', m).onclick = close;
           $('[data-y]', m).onclick = function () {
             busy($('[data-y]', m), true, 'Saving…');
-            api('orderEdit', { pso: o.pso, mark: $('#eMark', m).value, party: $('#eParty', m).value, orderDate: dateMs($('#eDate', m).value) }).then(function () { close(); toast('Saved.'); loadOrders(true); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 4000); });
+            api('orderEdit', { pso: o.pso, mark: $('#eMark', m).value, party: $('#eParty', m).value, orderDate: dateMs($('#eDate', m).value) }).then(function (x) { close(); toast('Saved.'); take(x); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 4000); });
           };
         });
       }
@@ -83,7 +84,7 @@
           $('[data-n]', m).onclick = close;
           $('[data-y]', m).onclick = function () {
             busy($('[data-y]', m), true, 'Closing…');
-            api('orderClose', { pso: pso, reason: $('#cR', m).value, note: $('#cN', m).value }).then(function () { close(); toast('Closed.'); loadOrders(true); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 4000); });
+            api('orderClose', { pso: pso, reason: $('#cR', m).value, note: $('#cN', m).value }).then(function (x) { close(); toast('Closed.'); take(x); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 4000); });
           };
         });
       }
