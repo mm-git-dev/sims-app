@@ -103,6 +103,7 @@
           var boxes = parseInt(b.value, 10), d = parseInt(dm.value, 10), s = parseInt(sh.value, 10);
           if (!(boxes >= 1)) { toast('Enter the total boxes as per docket.'); b.focus(); return; }
           if (isNaN(d) || isNaN(s) || d < -1 || s < -1) { toast('Damaged and short must be whole numbers (−1 = not entered).'); return; }
+          if ((d < 0) !== (s < 0)) { toast('Enter both Damaged and Short, or leave both at -1 (not entered).', 5000); return; }
           if (d > boxes || s > boxes) { toast('Damaged or short cannot be more than total boxes.'); return; }
           doPrint({ lr: lr, pomsLr: poms && poms !== lr ? poms : '', boxes: boxes, damaged: d, short: s }, $('#nPrint'));
         };
@@ -246,6 +247,7 @@
           if (!lr) { toast('Enter the docket number.'); return; }
           if (!(boxes >= 1)) { toast('Enter the total boxes as per docket.'); return; }
           if (isNaN(dm) || isNaN(sh) || dm < -1 || sh < -1 || dm > boxes || sh > boxes) { toast('Check damaged and short.'); return; }
+          if ((dm < 0) !== (sh < 0)) { toast('Enter both Damaged and Short, or leave both at -1 (not entered).', 5000); return; }
           var btn = $('#aGo'); busy(btn, true, 'Adding…');
           // the typed number may be a POMS LR different from the docket number; the back end resolves both
           api('addToBatch', { lr: lr, boxes: boxes, damaged: dm, short: sh, alsoPrint: addDraft.also }).then(function (r) {

@@ -16,6 +16,7 @@
       $('[data-y]', m).onclick = function () {
         var d = parseInt($('#rD', m).value, 10), s = parseInt($('#rS', m).value, 10);
         if (isNaN(d) || isNaN(s) || d < -1 || s < -1) { toast('Enter whole numbers (−1 = not entered).'); return; }
+        if ((d < 0) !== (s < 0)) { toast('Enter both Damaged and Short, or leave both at -1 (not entered).', 5000); return; }
         busy($('[data-y]', m), true, 'Saving…');
         api('editRemark', { lr: lr, damaged: d, short: s }).then(function (r) { close(); toast('Remark: ' + r.remark); done && done(); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 4000); });
       };

@@ -280,6 +280,8 @@ var SIMS_CORE = (function () {
     if (dm === 0 && sh === 0) return 'OK';
     return dm + ' DAMAGED, ' + sh + ' SHORT';
   }
+  /** Short boxes that count for a claim: only when BOTH damaged and short are entered (0 or more). Otherwise 0. */
+  function shortBoxes(d) { return remarkText(d) === 'NOT ENTERED' ? 0 : Number(d.short); }
   function remarkLine(d) {
     var dm = Number(d.damaged), sh = Number(d.short);
     if (remarkText(d) === 'NOT ENTERED') return 'Not entered';
@@ -299,14 +301,14 @@ var SIMS_CORE = (function () {
     var f = [];
     if (remarkText(d) === 'NOT ENTERED') f.push('Remark not entered');
     if (!docs.pod) f.push('POD missing');
-    if (Number(d.short) > 0 && !docs.claim) f.push('Claim sheet missing');
+    if (shortBoxes(d) > 0 && !docs.claim) f.push('Claim sheet missing');
     if ((docs.deliveries || 0) > (docs.laterReceipts || 0)) f.push('Later receipt sheet missing');
     if (d.lrMismatch) f.push('LR not matching POMS');
     return f;
   }
   /** Claim state for a docket with short boxes. deliveries: [{boxes, poms}] */
   function claimState(d, deliveries) {
-    var sh = Number(d.short);
+    var sh = shortBoxes(d);
     if (!(sh > 0)) return { state: 'none', stillShort: 0, late: 0 };
     var late = 0; (deliveries || []).forEach(function (x) { late += Number(x.boxes) || 0; });
     var still = Math.max(0, sh - late);
@@ -413,7 +415,7 @@ var SIMS_CORE = (function () {
     fmtINR: fmtINR, fmtLakh: fmtLakh, lineValue: lineValue, estimateAmount: estimateAmount,
     comparePart: comparePart, sortByPart: sortByPart, location: location, GROUP_TITLES: GROUP_TITLES,
     partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, detectGrn: detectGrn,
-    grnProgress: grnProgress, remarkText: remarkText, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
+    grnProgress: grnProgress, remarkText: remarkText, shortBoxes: shortBoxes, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
     PERMS: PERMS, PERM_INFO: PERM_INFO, allPerms: allPerms, can: can, officeOpen: officeOpen, canNow: canNow,
     expectedDate: expectedDate, isOverdue: isOverdue, parsePackingList: parsePackingList, inv4: inv4,
     HEAD_TRANSIT: HEAD_TRANSIT, HEAD_PRICE: HEAD_PRICE, HEAD_RACK: HEAD_RACK
