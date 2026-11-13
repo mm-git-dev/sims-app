@@ -236,7 +236,7 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1 };
 
   function route() {
@@ -263,7 +263,7 @@
   }
   function closedHtml() { var s = App.me.settings; return '<div class="card warn"><h2>SIMS is closed</h2><p>SIMS is closed. Office hours ' + fmtHM(s.officeStart) + ' to ' + fmtHM(s.officeEnd) + '.</p><p class="muted">Only basic part scan works now (part number, description, MRP).</p></div>'; }
   function fmtHM(t) { var p = t.split(':'), h = +p[0], ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return h + ':' + p[1] + ' ' + ap; }
-  function menuKey(p) { return p === 'docket' || p === 'combine-scan' ? '' : p; }
+  function menuKey(p) { return p === 'docket' || p === 'combine-scan' || p === 'box' ? '' : p; }
   window.addEventListener('hashchange', route);
   App.route = route;
 
@@ -288,8 +288,11 @@
     if (can('pendingItems')) m.push({ k: 'pending-items', t: 'Pending Items', h: '#/pending-items' });
     if (can('pendingClaims')) m.push({ k: 'pending-claims', t: 'Pending Claims', h: '#/pending-claims' });
     if (can('missedClaims')) m.push({ k: 'missed-claims', t: 'Missed Claims', h: '#/missed-claims' });
-    if (can('partyOrders')) m.push({ k: 'party-orders', t: 'Party Orders', h: '#/party-orders' });
     if (can('transitList')) m.push({ k: 'transit', t: 'Transit List', h: '#/transit' });
+    if (can('partyOrders')) m.push({ k: 'party-orders', t: 'Party Orders', h: '#/party-orders' });
+    if (can('boxFinder')) m.push({ k: 'box-finder', t: 'Box Finder', h: '#/box-finder' });
+    if (can('docketHistory')) m.push({ k: 'docket-history', t: 'Docket History', h: '#/docket-history' });
+    if (can('uploadPacking')) m.push({ k: 'upload-packing', t: 'Upload Packing List', h: '#/upload-packing' });
     if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
     return m;
   }
@@ -439,7 +442,7 @@
       var exact = App.lists.price.has(q.toUpperCase()) ? q.toUpperCase() : (App.lists.price.has(q) ? q : '');
       var kinds = [];
       if (exact) kinds.push({ kind: 'part', part: exact, label: 'Part ' + exact });
-      if (App.can('searchDockets') && App.open()) {
+      if ((App.can('searchDockets') || App.can('boxScan')) && App.open()) {
         res.innerHTML += '<p class="muted"><span class="spinner"></span> Searching dockets…</p>';
         api('search', { q: q }).then(function (d) {
           kinds = kinds.concat(d.results);
@@ -451,7 +454,7 @@
       } else if (kinds.length) open(kinds[0]);
       else { res.innerHTML = '<div class="card">Part number not found.</div>'; App.feedback(false); }
     }
-    function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
+    function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else if (k.kind === 'case') App.go('#/box/' + encodeURIComponent(k.caseNo)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
     function bindRes() { $$('[data-dk]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/docket/' + encodeURIComponent(d.dataset.dk)); }; }); $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
     inp.addEventListener('input', function () { run(false); });
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') run(true); });
@@ -516,7 +519,7 @@
       App.feedback(true); App.go('#/part/' + encodeURIComponent(p)); return true;
     }
     if (k.kind === 'delivery') { App.feedback(false); toast(k.hint); return false; }
-    if (k.kind === 'case') { App.feedback(true); toast('Box scan arrives in a later update.'); return false; }
+    if (k.kind === 'case') { if (!App.can('boxScan')) { App.feedback(false); toast('You do not have permission to see box contents.'); return false; } App.feedback(true); App.go('#/box/' + encodeURIComponent(k.value)); return true; }
     if (k.kind === 'docketLink') { App.feedback(true); App.go('#/docket/' + encodeURIComponent(k.value)); return true; }
     if (k.kind === 'docket' || k.kind === 'unknown') {
       var no = k.value;
@@ -569,7 +572,7 @@
       var el = $('#hStat'); if (!el) return;
       var out = [];
       if (s.arrivedNotCombined !== undefined) out.push(s.arrivedNotCombined + (s.arrivedNotCombined === 1 ? ' docket' : ' dockets') + ' arrived, not combined');
-      el.innerHTML = out.map(function (t) { return '<div class="stat">' + esc(t) + '</div>'; }).join('');
+      el.innerHTML = out.map(function (t) { return '<div class="stat">' + esc(t) + '</div>'; }).join('') + (s.packRemind ? '<div class="stat">' + esc(s.packRemind) + ' <a href="#/upload-packing">Upload now</a></div>' : '');
     }
   };
 
