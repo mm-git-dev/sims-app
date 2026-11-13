@@ -66,12 +66,14 @@
     if (k.short > 0) {
       var cl = k.claim; html += '<h3>Claim</h3><div class="card"><div class="row between"><div class="bold">Short ' + esc(k.short) + ' box' + (k.short === 1 ? '' : 'es') + '</div><span class="chip ' + (cl.state === 'open' ? 'warn' : 'ok') + '">' + esc(cl.state === 'open' ? 'Open' : cl.state === 'settled' ? 'Settled' : 'Closed') + '</span></div>' +
         (cl.state === 'open' ? '<div class="muted">Still short: ' + cl.stillShort + (cl.stillShort === 1 ? ' box' : ' boxes') + '</div>' : '') +
-        (dels.length ? '<div class="list" style="margin-top:8px">' + dels.map(function (x) { return '<div class="item"><div class="grow">' + x.boxes + ' box' + (x.boxes === 1 ? '' : 'es') + ' received ' + esc(C.fmtDay(x.date)) + (x.note ? '<div class="small muted">' + esc(x.note) + '</div>' : '') + '</div><span class="chip ' + (x.poms ? 'ok' : 'warn') + '">' + (x.poms ? 'Added to POMS' : 'Not added to POMS') + '</span></div>'; }).join('') + '</div>' : '') + '</div>';
+        (dels.length ? '<div class="list" style="margin-top:8px">' + dels.map(function (x) { return '<div class="item"><div class="grow">' + x.boxes + ' box' + (x.boxes === 1 ? '' : 'es') + ' received ' + esc(C.fmtDay(x.date)) + (x.note ? '<div class="small muted">' + esc(x.note) + '</div>' : '') + '</div><span class="chip ' + (x.poms ? 'ok' : 'warn') + '">' + (x.poms ? 'Added to POMS' : 'Not added to POMS') + '</span></div>'; }).join('') + '</div>' : '') +
+        (cl.state === 'open' && cl.stillShort > 0 && App.can('addDelivery') ? '<div class="row" style="margin-top:10px"><button class="btn pri" id="dxAd">Add delivery</button></div>' : '') + '</div>';
     }
     if (App.can('editPodRemarks') && k.printed) html += '<div class="row" style="margin-top:10px"><button class="btn" id="editRem">Edit remark</button></div>';
     box.innerHTML = html; view.appendChild(box);
     $$('[data-vd]', box).forEach(function (b) { b.onclick = function () { App.viewDoc(b.dataset.vd); }; });
     var ad = $('#addDoc', box); if (ad) ad.onclick = function () { App.addDocument(k.lr, types, reload); };
+    var da = $('#dxAd', box); if (da) da.onclick = function () { addDelivery({ lr: k.lr, stillShort: k.claim.stillShort }, reload); };
     var er = $('#editRem', box); if (er) er.onclick = function () { App.editRemark(k.lr, k, reload); };
   };
 
@@ -127,6 +129,25 @@
     });
   }
 
+  function addDelivery(c, done) {
+    var docs = {};
+    App.modal('<h2 style="margin-top:0">Add delivery</h2><div class="muted small">Docket ' + esc(c.lr) + ' · still short ' + c.stillShort + '</div><label class="f">Boxes received now</label><input type="number" id="adB" min="1" max="' + c.stillShort + '" inputmode="numeric"><label class="f">Date</label><input type="date" id="adD" value="' + today() + '"><label class="f">Note (optional)</label><input type="text" id="adN" maxlength="200">' +
+      '<div class="row" style="margin-top:12px">' + (App.can('uploadPod') ? '<button class="btn" id="adP">New POD (optional)</button>' : '') + (App.can('uploadClaim') ? '<button class="btn" id="adC">Claim sheet (optional)</button>' : '') + '</div><div class="small muted" id="adInfo" style="margin-top:6px"></div>' +
+      '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" data-n>Cancel</button><button class="btn pri" data-y>Save delivery</button></div>', function (m, close) {
+      function pick(btnId, type) { var b = $(btnId, m); if (!b) return; b.onclick = function () { m.style.display = 'none'; App.pickDoc({ title: type }).then(function (d) { m.style.display = ''; if (d) { docs[type] = d; $('#adInfo', m).textContent = Object.keys(docs).join(' + ') + ' attached ✓'; } }); }; }
+      pick('#adP', 'Later POD'); pick('#adC', 'Claim sheet');
+      $('[data-n]', m).onclick = close;
+      $('[data-y]', m).onclick = function () {
+        var n = parseInt($('#adB', m).value, 10); if (!(n >= 1) || n > c.stillShort) { toast('Enter 1 to ' + c.stillShort + ' boxes.'); return; }
+        var dt = $('#adD', m).value, ms = dt ? Date.UTC(+dt.slice(0, 4), +dt.slice(5, 7) - 1, +dt.slice(8, 10)) : null;
+        busy($('[data-y]', m), true, 'Saving…');
+        api('addDelivery', { lr: c.lr, boxes: n, date: ms, note: $('#adN', m).value, docs: Object.keys(docs).map(function (t) { return { type: t, mime: docs[t].mime, name: docs[t].name, data: docs[t].data }; }) })
+          .then(function () { close(); toast('Delivery added.'); done && done(); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 5000); });
+      };
+    });
+  }
+  App.addDelivery = addDelivery;
+
   // =====================================================================
   // Pending Claims
   // =====================================================================
@@ -139,7 +160,7 @@
           view.innerHTML = '<label class="item"><input type="checkbox" id="pcAll"' + (all ? ' checked' : '') + '><span>Show closed and settled claims too</span></label>' +
             (d.claims.length ? d.claims.map(card).join('') : '<div class="card muted">No open claims.</div>');
           $('#pcAll').onchange = function () { all = this.checked; load(); };
-          $$('[data-ad]', view).forEach(function (b) { b.onclick = function () { addDelivery(d.claims.filter(function (c) { return c.lr === b.dataset.ad; })[0]); }; });
+          $$('[data-ad]', view).forEach(function (b) { b.onclick = function () { addDelivery(d.claims.filter(function (c) { return c.lr === b.dataset.ad; })[0], function () { load(true); }); }; });
           $$('[data-st]', view).forEach(function (b) { b.onclick = function () { App.confirm('Mark this claim as settled? It will leave the open list.', 'Mark settled').then(function (y) { if (!y) return; api('settleClaim', { lr: b.dataset.st }).then(function () { toast('Settled.'); load(true); }).catch(function (e) { toast(e.message); }); }); }; });
           $$('[data-pm]', view).forEach(function (b) { b.onclick = function () { pomsModal(b.dataset.pm, function () { load(true); }); }; });
           $$('[data-op]', view).forEach(function (b) { b.onclick = function () { App.go('#/docket/' + encodeURIComponent(b.dataset.op)); }; });
@@ -151,23 +172,6 @@
           (c.state === 'open' ? '<div class="bold" style="margin:6px 0">Still short: ' + c.stillShort + (c.stillShort === 1 ? ' box' : ' boxes') + '</div>' : '') +
           (c.deliveries.length ? '<div class="list">' + c.deliveries.map(function (x) { return '<div class="item"><div class="grow">' + x.boxes + ' box' + (x.boxes === 1 ? '' : 'es') + ' received ' + esc(C.fmtDay(x.date)) + (x.note ? '<div class="small muted">' + esc(x.note) + '</div>' : '') + (x.poms ? '<div class="small muted">Added to POMS ' + esc(stamp(x.pomsAt)) + ' · ' + esc(x.pomsBy) + '</div>' : '') + '</div>' + (x.poms ? '<span class="chip ok">Added to POMS</span>' : (App.can('markPoms') ? '<button class="btn" data-pm="' + esc(x.id) + '">Added to POMS</button>' : '<span class="chip warn">Not added</span>')) + '</div>'; }).join('') + '</div>' : '') +
           '<div class="row" style="margin-top:10px">' + (c.stillShort > 0 && App.can('addDelivery') ? '<button class="btn pri" data-ad="' + esc(c.lr) + '">Add delivery</button>' : '') + (c.state === 'open' && App.can('markSettled') ? '<button class="btn" data-st="' + esc(c.lr) + '">Mark settled</button>' : '') + '<button class="btn" data-op="' + esc(c.lr) + '">Open docket</button></div></div>';
-      }
-      function addDelivery(c) {
-        var docs = {};
-        App.modal('<h2 style="margin-top:0">Add delivery</h2><div class="muted small">Docket ' + esc(c.lr) + ' · still short ' + c.stillShort + '</div><label class="f">Boxes received now</label><input type="number" id="adB" min="1" max="' + c.stillShort + '" inputmode="numeric"><label class="f">Date</label><input type="date" id="adD" value="' + today() + '"><label class="f">Note (optional)</label><input type="text" id="adN" maxlength="200">' +
-          '<div class="row" style="margin-top:12px">' + (App.can('uploadPod') ? '<button class="btn" id="adP">New POD (optional)</button>' : '') + (App.can('uploadClaim') ? '<button class="btn" id="adC">Claim sheet (optional)</button>' : '') + '</div><div class="small muted" id="adInfo" style="margin-top:6px"></div>' +
-          '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" data-n>Cancel</button><button class="btn pri" data-y>Save delivery</button></div>', function (m, close) {
-          function pick(btnId, type) { var b = $(btnId, m); if (!b) return; b.onclick = function () { m.style.display = 'none'; App.pickDoc({ title: type }).then(function (d) { m.style.display = ''; if (d) { docs[type] = d; $('#adInfo', m).textContent = Object.keys(docs).join(' + ') + ' attached ✓'; } }); }; }
-          pick('#adP', 'Later POD'); pick('#adC', 'Claim sheet');
-          $('[data-n]', m).onclick = close;
-          $('[data-y]', m).onclick = function () {
-            var n = parseInt($('#adB', m).value, 10); if (!(n >= 1) || n > c.stillShort) { toast('Enter 1 to ' + c.stillShort + ' boxes.'); return; }
-            var dt = $('#adD', m).value, ms = dt ? Date.UTC(+dt.slice(0, 4), +dt.slice(5, 7) - 1, +dt.slice(8, 10)) : null;
-            busy($('[data-y]', m), true, 'Saving…');
-            api('addDelivery', { lr: c.lr, boxes: n, date: ms, note: $('#adN', m).value, docs: Object.keys(docs).map(function (t) { return { type: t, mime: docs[t].mime, name: docs[t].name, data: docs[t].data }; }) })
-              .then(function () { close(); toast('Delivery added.'); load(true); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 5000); });
-          };
-        });
       }
       App.live(function () { load(false); });
       return load();
