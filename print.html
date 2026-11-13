@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>SIMS print</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="css/fonts.css"><link rel="stylesheet" href="css/print.css">
+<style>body{margin:0;background:#fff}</style></head>
+<body><div id="printRoot"></div>
+<script src="js/core.js"></script><script src="js/print.js"></script>
+<script>
+/* Used by the office print helper (headless Chrome): it passes the finished sheet pages, then saves the page as an A4 PDF. */
+window.renderPages = function (pages) {
+  return SIMSPrint.render(pages).then(function (root) { root.style.display = 'block'; return true; });
+};
+</script></body></html>

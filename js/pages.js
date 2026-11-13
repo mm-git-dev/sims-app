@@ -334,7 +334,7 @@
   // =====================================================================
   // Admin
   // =====================================================================
-  var ADMIN_TABS = [['users', 'Users'], ['devices', 'Connected Devices'], ['settings', 'Settings'], ['feeds', 'Data Feeds'], ['files', 'Files'], ['alerts', 'Alerts'], ['watch', 'Part Watch List'], ['backups', 'Backups']];
+  var ADMIN_TABS = [['users', 'Users'], ['devices', 'Connected Devices'], ['settings', 'Settings'], ['feeds', 'Data Feeds'], ['files', 'Files'], ['alerts', 'Alerts'], ['watch', 'Part Watch List'], ['backups', 'Backups'], ['print', 'Remote Printing']];
   App.pages.admin = {
     render: function (view, r) {
       if (!App.me.user.admin) { view.innerHTML = '<div class="card">Admin only.</div>'; return; }
