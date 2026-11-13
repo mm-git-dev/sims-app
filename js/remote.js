@@ -3,7 +3,13 @@
 (function () {
   'use strict';
   var App = window.App, $ = App.$, esc = App.esc, api = App.api, toast = App.toast;
-  var local = SIMSPrint.print, ip = { at: 0, v: '' };
+  var local = SIMSPrint.print, ip = { at: 0, v: '' }, route = { at: 0, ip: '', m: null };
+  /** Where to print is checked in the background (every 45 s) so a print never waits for it. Only runs once an office PC has been set up. */
+  function getRoute() {
+    if (route.m && Date.now() - route.at < 60000) return Promise.resolve(route);
+    return publicIp().then(function (addr) { if (!addr) return null; return api('printRoute', { ip: addr }, { quiet: true }).then(function (m) { route = { at: Date.now(), ip: addr, m: m }; return route; }); });
+  }
+  setInterval(function () { if (App.me && App.me.remotePrint) getRoute().catch(function () { }); }, 45000);
 
   function publicIp() {
     if (Date.now() - ip.at < 300000) return Promise.resolve(ip.v);
@@ -22,10 +28,10 @@
   }
 
   SIMSPrint.print = function (pages) {
-    if (!App.me) return local(pages);
-    return publicIp().then(function (addr) {
-      if (!addr) return local(pages);                       // cannot tell where we are: behave as in the office
-      return api('printRoute', { ip: addr }).then(function (m) {
+    if (!App.me || !App.me.remotePrint) return local(pages);   // no office PC has ever been set up: everyone prints normally
+    return getRoute().catch(function () { return null; }).then(function (rt) {
+      if (!rt) return local(pages);                         // cannot tell where we are: behave as in the office
+      var addr = rt.ip; return Promise.resolve(rt.m).then(function (m) {
         if (m.mode === 'local') return local(pages);
         if (m.mode === 'blocked') { App.modal('<h2 style="margin-top:0">Remote printing is off</h2><p>Connect to the office network to print.</p><div class="row" style="justify-content:flex-end"><button class="btn pri" data-x>OK</button></div>', function (mm, close) { $('[data-x]', mm).onclick = close; }); return; }
         if (m.mode === 'remote') return send(pages, addr).then(function () { toast('Print sent to the office PC ✓', 3500); });
