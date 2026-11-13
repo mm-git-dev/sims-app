@@ -334,7 +334,7 @@
   // =====================================================================
   // Admin
   // =====================================================================
-  var ADMIN_TABS = [['users', 'Users'], ['devices', 'Connected Devices'], ['settings', 'Settings'], ['feeds', 'Data Feeds'], ['files', 'Files']];
+  var ADMIN_TABS = [['users', 'Users'], ['devices', 'Connected Devices'], ['settings', 'Settings'], ['feeds', 'Data Feeds'], ['files', 'Files'], ['alerts', 'Alerts'], ['watch', 'Part Watch List'], ['backups', 'Backups']];
   App.pages.admin = {
     render: function (view, r) {
       if (!App.me.user.admin) { view.innerHTML = '<div class="card">Admin only.</div>'; return; }
@@ -352,8 +352,8 @@
       function fail(e, had) { if (e.code === 'adminlock') { lockUi(); return; } if (!had) t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; }
       function tabSwr(key, fetchFn, paint, fresh) { return App.swr(key, fetchFn, function (d) { App.keepState(t, function () { paint(d); }); }, { fresh: fresh, onError: fail, silent: true }); }
       function anyPanelOpen() { return $$('[id^="pm-"]', t).some(function (b) { return b.innerHTML; }); }
-      if (tab === 'users') usersTab(t, false); else if (tab === 'devices') devicesTab(t, false); else if (tab === 'settings') settingsTab(t, false); else if (tab === 'feeds') feedsTab(t, false); else filesTab(t, false);
-      if (tab !== 'settings') App.live(function () { if (tab === 'users') usersTab(t, false); else if (tab === 'devices') devicesTab(t, false); else if (tab === 'feeds') feedsTab(t, false); else filesTab(t, false); });
+      if (tab === 'users') usersTab(t, false); else if (tab === 'devices') devicesTab(t, false); else if (tab === 'settings') settingsTab(t, false); else if (tab === 'feeds') feedsTab(t, false); else if (App.adminTabs && App.adminTabs[tab]) App.adminTabs[tab](t); else filesTab(t, false);
+      if (tab !== 'settings' && !(App.adminTabs && App.adminTabs[tab])) App.live(function () { if (tab === 'users') usersTab(t, false); else if (tab === 'devices') devicesTab(t, false); else if (tab === 'feeds') feedsTab(t, false); else filesTab(t, false); });
       function tabs() { return '<div class="tabs">' + ADMIN_TABS.map(function (t) { return '<button data-t="' + t[0] + '"' + (t[0] === tab ? ' class="on"' : '') + '>' + t[1] + '</button>'; }).join('') + '</div>'; }
       function usersTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
