@@ -98,16 +98,18 @@
         $$('[data-fx]', $('#pList')).forEach(function (b) { b.onclick = function () { fix(items[+b.dataset.fx]); }; });
       }
       function fix(x) {
-        if (x.fix === 'remark') return App.editRemark(x.lr, null, load);
-        if (x.fix === 'poms') return pomsModal(x.deliveryId, load);
+        if (x.fix === 'remark') return App.editRemark(x.lr, null, reload);
+        if (x.fix === 'poms') return pomsModal(x.deliveryId, reload);
         var type = x.fix === 'pod' ? 'POD' : x.fix === 'claim' ? 'Claim sheet' : 'Later receipt sheet';
         App.pickDoc({ title: type + ' for ' + x.lr }).then(function (doc) {
           if (!doc) return; toast('Saving…', 8000);
-          upload(x.lr, type, doc, '', { deliveryId: x.deliveryId || '' }).then(function (r) { toast(r.status === 'queued' ? 'Saved temporarily; it will move automatically.' : 'Saved.'); load(); }).catch(function (e) { toast(e.message, 5000); });
+          upload(x.lr, type, doc, '', { deliveryId: x.deliveryId || '' }).then(function (r) { toast(r.status === 'queued' ? 'Saved temporarily; it will move automatically.' : 'Saved.'); load(true); }).catch(function (e) { toast(e.message, 5000); });
         });
       }
-      function load() { return api('pendingItems').then(function (d) { items = d.items; draw(); }).catch(function (e) { $('#pList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); }
+      function load(fresh) { return App.swr('pendingItems', function () { return api('pendingItems'); }, function (d) { items = d.items; draw(); }, { fresh: fresh }).catch(function (e) { $('#pList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); }
+      function reload() { return load(true); }
       $('#pQ').oninput = function () { q = this.value.replace(/\s+/g, ''); draw(); };
+      App.live(function () { load(false); });
       return load();
     }
   };
@@ -132,16 +134,16 @@
     perm: 'pendingClaims',
     render: function (view) {
       var all = false;
-      function load() {
-        return api('pendingClaims', { all: all }).then(function (d) {
+      function load(fresh) {
+        return App.swr('pendingClaims:' + (all ? 'all' : 'open'), function () { return api('pendingClaims', { all: all }); }, function (d) { App.keepState(view, function () {
           view.innerHTML = '<label class="item"><input type="checkbox" id="pcAll"' + (all ? ' checked' : '') + '><span>Show closed and settled claims too</span></label>' +
             (d.claims.length ? d.claims.map(card).join('') : '<div class="card muted">No open claims.</div>');
           $('#pcAll').onchange = function () { all = this.checked; load(); };
           $$('[data-ad]', view).forEach(function (b) { b.onclick = function () { addDelivery(d.claims.filter(function (c) { return c.lr === b.dataset.ad; })[0]); }; });
-          $$('[data-st]', view).forEach(function (b) { b.onclick = function () { App.confirm('Mark this claim as settled? It will leave the open list.', 'Mark settled').then(function (y) { if (!y) return; api('settleClaim', { lr: b.dataset.st }).then(function () { toast('Settled.'); load(); }).catch(function (e) { toast(e.message); }); }); }; });
-          $$('[data-pm]', view).forEach(function (b) { b.onclick = function () { pomsModal(b.dataset.pm, load); }; });
+          $$('[data-st]', view).forEach(function (b) { b.onclick = function () { App.confirm('Mark this claim as settled? It will leave the open list.', 'Mark settled').then(function (y) { if (!y) return; api('settleClaim', { lr: b.dataset.st }).then(function () { toast('Settled.'); load(true); }).catch(function (e) { toast(e.message); }); }); }; });
+          $$('[data-pm]', view).forEach(function (b) { b.onclick = function () { pomsModal(b.dataset.pm, function () { load(true); }); }; });
           $$('[data-op]', view).forEach(function (b) { b.onclick = function () { App.go('#/docket/' + encodeURIComponent(b.dataset.op)); }; });
-        }).catch(function (e) { view.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+        }); }, { fresh: fresh }).catch(function (e) { view.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
       function card(c) {
         return '<div class="card"><div class="row between"><div class="bold mono" style="font-size:20px">' + esc(c.lr) + '</div><span class="chip ' + (c.state === 'open' ? 'warn' : 'ok') + '">' + (c.state === 'open' ? 'Open' : c.state === 'settled' ? 'Settled' : 'Closed') + '</span></div>' +
@@ -163,10 +165,11 @@
             var dt = $('#adD', m).value, ms = dt ? Date.UTC(+dt.slice(0, 4), +dt.slice(5, 7) - 1, +dt.slice(8, 10)) : null;
             busy($('[data-y]', m), true, 'Saving…');
             api('addDelivery', { lr: c.lr, boxes: n, date: ms, note: $('#adN', m).value, docs: Object.keys(docs).map(function (t) { return { type: t, mime: docs[t].mime, name: docs[t].name, data: docs[t].data }; }) })
-              .then(function () { close(); toast('Delivery added.'); load(); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 5000); });
+              .then(function () { close(); toast('Delivery added.'); load(true); }).catch(function (e) { busy($('[data-y]', m), false); toast(e.message, 5000); });
           };
         });
       }
+      App.live(function () { load(false); });
       return load();
     }
   };
@@ -178,8 +181,8 @@
     perm: 'missedClaims',
     render: function (view) {
       var all = false;
-      function load() {
-        return api('missedList', { all: all }).then(function (d) {
+      function load(fresh) {
+        return App.swr('missedList:' + (all ? 'all' : 'open'), function () { return api('missedList', { all: all }); }, function (d) { App.keepState(view, function () {
           view.innerHTML = '<div class="card"><h2 style="margin-top:0">Add a missed claim</h2><div class="muted small">Short quantities only. It shows on every incoming lot of this part until cleared.</div>' +
             '<label class="f">Part number</label><input type="text" id="mPart" autocapitalize="characters" autocomplete="off"><div class="small muted" id="mDesc"></div><label class="f">Quantity short</label><input type="number" id="mQty" min="1" inputmode="numeric">' +
             '<label class="f">Original docket (optional)</label><input type="text" id="mLr" inputmode="numeric"><label class="f">Note (optional)</label><input type="text" id="mNote" maxlength="200"><button class="btn pri" id="mAdd" style="margin-top:12px">Add</button></div>' +
@@ -196,19 +199,20 @@
           $('#mAll').onchange = function () { all = this.checked; load(); };
           $('#mAdd').onclick = function () {
             busy($('#mAdd'), true, 'Adding…');
-            api('missedAdd', { part: pi.value, qty: $('#mQty').value, lr: $('#mLr').value, note: $('#mNote').value }).then(function () { toast('Added.'); load(); }).catch(function (e) { busy($('#mAdd'), false); toast(e.message, 4000); });
+            api('missedAdd', { part: pi.value, qty: $('#mQty').value, lr: $('#mLr').value, note: $('#mNote').value }).then(function () { toast('Added.'); load(true); }).catch(function (e) { busy($('#mAdd'), false); toast(e.message, 4000); });
           };
           $$('[data-r]', view).forEach(function (b) {
             b.onclick = function () {
               var left = +b.dataset.left;
               App.modal('<h2 style="margin-top:0">Claim raised</h2><label class="f">Quantity raised (up to ' + left + ')</label><input type="number" id="rq" min="1" max="' + left + '" value="' + left + '"><div class="small muted" style="margin-top:6px">A part raised for 2 of 4 leaves 2 pending.</div><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-n>Cancel</button><button class="btn pri" data-y>Save</button></div>', function (m, close) {
                 $('[data-n]', m).onclick = close;
-                $('[data-y]', m).onclick = function () { api('missedRaise', { id: b.dataset.r, qty: $('#rq', m).value }).then(function () { close(); toast('Saved.'); load(); }).catch(function (e) { toast(e.message, 4000); }); };
+                $('[data-y]', m).onclick = function () { api('missedRaise', { id: b.dataset.r, qty: $('#rq', m).value }).then(function () { close(); toast('Saved.'); load(true); }).catch(function (e) { toast(e.message, 4000); }); };
               });
             };
           });
-        }).catch(function (e) { view.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+        }); var q = $('#mPart'); if (q && q.oninput) q.oninput(); }, { fresh: fresh }).catch(function (e) { view.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
+      App.live(function () { load(false); });
       return load();
     }
   };

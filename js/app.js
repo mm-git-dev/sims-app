@@ -121,27 +121,75 @@
     }).catch(function () { /* offline: keep cache */ });
   };
 
-  // ---------- instant pages: show the last copy at once, refresh quietly ----------
+  // ---------- instant pages: show the last copy at once, refresh quietly, keep the page up to date ----------
   function cacheKey(k) { return 'sims.c.' + (App.me ? App.me.user.id : '') + '.' + k; }
-  /** fetchFn() -> promise of data. paint(data) draws it. Shows the saved copy immediately, then the fresh one if it changed.
-      opts.fresh = true skips the saved copy (use after the user changed something). */
+  function cacheRemember(k) {
+    // keep at most 15 saved docket pages so the browser's storage never fills up
+    if (k.indexOf('docket:') !== 0) return;
+    var idx = []; try { idx = JSON.parse(ls('sims.cidx') || '[]'); } catch (e) { idx = []; }
+    idx = idx.filter(function (x) { return x !== k; }); idx.push(k);
+    while (idx.length > 15) { var old = idx.shift(); ls(cacheKey(old), null); }
+    ls('sims.cidx', JSON.stringify(idx));
+  }
+  /** fetchFn() -> promise of data. paint(data) draws it.
+      Shows the saved copy immediately, then the fresh one if it differs. Never paints into a page the user has left.
+      opts: {fresh: skip the saved copy; onError(e): called if the refresh fails (even when a saved copy is on screen); silent: do not show errors} */
   App.swr = function (key, fetchFn, paint, opts) {
-    var ck = cacheKey(key), cached = null, shown = null;
+    opts = opts || {};
+    var rid = App.routeSeq, ck = cacheKey(key), cached = null, shown = null;
     try { cached = JSON.parse(ls(ck) || 'null'); } catch (e) { cached = null; }
-    if (cached && !(opts && opts.fresh)) { shown = JSON.stringify(cached.d); try { paint(cached.d); } catch (e) { shown = null; } }
+    function go(d) { if (App.routeSeq !== rid) return; paint(d); }
+    if (cached && !opts.fresh) { shown = JSON.stringify(cached.d); try { go(cached.d); } catch (e) { shown = null; } }
     return fetchFn().then(function (d) {
-      var s = JSON.stringify(d); ls(ck, JSON.stringify({ d: d, t: Date.now() }));
-      if (s !== shown) paint(d);
-      return d;
-    }, function (e) { if (shown === null) throw e; });
+      var s = JSON.stringify(d); ls(ck, JSON.stringify({ d: d, t: Date.now() })); cacheRemember(key);
+      if (s !== shown) go(d);
+      shown = s; return d;
+    }, function (e) {
+      if (opts.onError && App.routeSeq === rid) opts.onError(e, shown !== null);
+      if (shown === null && !opts.silent) throw e;
+    });
   };
-  /** Fetch the lists the busiest pages need, in the background, so they open instantly. */
+  /** Remember the user's place (scroll, open sections, typed text, focus) while a page is redrawn. */
+  App.keepState = function (root, fn) {
+    var page = $('#page'), st = { scroll: page ? page.scrollTop : 0, det: [], vals: {}, chk: {}, act: null, sel: null };
+    $$('details', root).forEach(function (d) { st.det.push(d.open); });
+    $$('input[id],select[id],textarea[id]', root).forEach(function (e) { if (e.type === 'checkbox' || e.type === 'radio') st.chk[e.id] = e.checked; else st.vals[e.id] = e.value; });
+    var ae = document.activeElement; if (ae && ae.id && root.contains(ae)) { st.act = ae.id; try { st.sel = [ae.selectionStart, ae.selectionEnd]; } catch (e) { /* not a text field */ } }
+    fn();
+    $$('details', root).forEach(function (d, i) { if (st.det[i] !== undefined) d.open = st.det[i]; });
+    Object.keys(st.vals).forEach(function (id) { var e = document.getElementById(id); if (e && e.value !== st.vals[id]) e.value = st.vals[id]; });
+    Object.keys(st.chk).forEach(function (id) { var e = document.getElementById(id); if (e) e.checked = st.chk[id]; });
+    if (st.act) { var f = document.getElementById(st.act); if (f) { f.focus(); try { if (st.sel) f.setSelectionRange(st.sel[0], st.sel[1]); } catch (e) { /* ignore */ } } }
+    if (page) page.scrollTop = st.scroll;
+  };
+  /** A page registers how to refresh itself; the app calls it every 20 s while the page is on screen and idle. */
+  App.live = function (fn) { App.liveFn = fn; };
+  function liveTick() {
+    if (document.hidden || !App.liveFn || !App.me) return;
+    if (document.querySelector('.modal, .overlay')) return;
+    var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && $('#page') && $('#page').contains(ae)) return;
+    try { App.liveFn(); } catch (e) { /* ignore */ }
+  }
+  setInterval(liveTick, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(liveTick, 300); });
+  /** Fetch what the busiest pages need, in the background, so they open instantly. */
   App.prefetch = function () {
     if (!App.me || !App.open()) return;
     var jobs = [];
-    if (App.can('docketGrn')) jobs.push(['openDockets', 'openDockets']);
-    if (App.can('combinedGrn')) jobs.push(['arrivedDockets', 'arrivedDockets']);
-    jobs.reduce(function (p, j) { return p.then(function () { return api(j[0], {}, { quiet: true }).then(function (d) { ls(cacheKey(j[1]), JSON.stringify({ d: d, t: Date.now() })); }).catch(function () {}); }); }, Promise.resolve());
+    if (App.can('docketGrn')) jobs.push(['openDockets', {}, 'openDockets']);
+    if (App.can('combinedGrn')) jobs.push(['arrivedDockets', {}, 'arrivedDockets']);
+    if (App.can('pendingItems')) jobs.push(['pendingItems', {}, 'pendingItems']);
+    if (App.can('pendingClaims')) jobs.push(['pendingClaims', { all: false }, 'pendingClaims:open']);
+    if (App.can('missedClaims')) jobs.push(['missedList', { all: false }, 'missedList:open']);
+    jobs.push(['homeStatus', {}, 'homeStatus']);
+    if (App.me.user.admin) { jobs.push(['adminUsers', {}, 'adminUsers']); jobs.push(['adminDevices', {}, 'adminDevices']); jobs.push(['adminSettings', {}, 'adminSettings']); jobs.push(['adminFiles', {}, 'adminFiles']); jobs.push([null, null, 'adminFeeds']); }
+    var p = Promise.resolve();
+    jobs.forEach(function (j) { p = p.then(function () { var call = j[0] ? api(j[0], j[1], { quiet: true }) : Promise.all([api('adminFeedStatus', {}, { quiet: true }), api('adminFeedIssues', {}, { quiet: true })]); return call.then(function (d) { ls(cacheKey(j[2]), JSON.stringify({ d: d, t: Date.now() })); }).catch(function () {}); }); });
+    // the first few open dockets, so tapping one opens at once
+    p.then(function () { try { var c = JSON.parse(ls(cacheKey('openDockets')) || 'null'); return c ? c.d.dockets.slice(0, 5) : []; } catch (e) { return []; } }).then(function (list) {
+      var q = Promise.resolve();
+      list.forEach(function (x) { q = q.then(function () { return api('docketDetails', { q: x.lr }, { quiet: true }).then(function (d) { ls(cacheKey('docket:' + x.lr), JSON.stringify({ d: d, t: Date.now() })); cacheRemember('docket:' + x.lr); }).catch(function () {}); }); });
+    });
   };
   function clearCaches() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('sims.c.') === 0) localStorage.removeItem(k); }); } catch (e) { /* ignore */ } }
 
@@ -177,6 +225,7 @@
   var PUBLIC = { approve: 1 };
 
   function route() {
+    App.routeSeq = (App.routeSeq || 0) + 1; App.liveFn = null;
     var r = parseHash();
     if (!App.token && !PUBLIC[r.name]) { showLogin(); return; }
     if (!App.me && !PUBLIC[r.name]) return;
@@ -463,7 +512,8 @@
       var sb = $('#hScan'); if (camOK && (window.matchMedia('(max-width:800px)').matches || window.matchMedia('(pointer:coarse)').matches)) sb.classList.remove('hide');
       sb.onclick = function () { App.scan({ mode: 'route' }); };
       $('#hSearch').onclick = openSearch; $('#hSearch').onfocus = openSearch;
-      this.tick(); if (App.open()) api('homeStatus').then(function (s) { App.pages.home.stat(s); }).catch(function () {});
+      this.tick();
+      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true }); }; hs(); App.live(function () { hs(); App.refreshLists(); }); }
     },
     tick: function () {
       var el = $('#hFresh'); if (!el) return;

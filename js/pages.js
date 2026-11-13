@@ -133,6 +133,7 @@
         }, { fresh: fresh }).catch(function (e) { var el = $('#dopen'); if (el) el.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
       }
       loadOpen();
+      App.live(function () { loadOpen(false); });
       if (r.q.lr) lookup(r.q.lr); else inp.focus();
     }
   };
@@ -142,7 +143,7 @@
   // =====================================================================
   App.pages.docket = {
     render: function (view, r) {
-      return api('docketDetails', { q: r.arg }).then(function (d) {
+      function paint(d) {
         if (!d.found) { view.innerHTML = '<div class="card bad"><h2>Docket not found</h2><p>' + esc(r.arg) + '</p></div>'; App.feedback(false); return; }
         var k = d.docket, u = App.me.user;
         var html = '<div class="card"><div class="row between"><div class="mono bold" style="font-size:26px">' + esc(k.lr) + '</div>' + chipFor(k.status) + '</div>' +
@@ -164,7 +165,7 @@
         html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
           k.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
         view.innerHTML = html;
-        if (App.docketExtras) App.docketExtras($('#dxExtras', view), k, function () { App.route(); });
+        if (App.docketExtras) App.docketExtras($('#dxExtras', view), k, function () { load(true); });
         $$('[data-rb]', view).forEach(function (b) { b.onclick = function () { App.pickGroups('Reprint batch', function (g) { api('batchReprint', { id: b.dataset.rb, groups: g }).then(function (x) { return printRackSheets(x.sheets); }).catch(function (e) { toast(e.message); }); }); }; });
         var sbt = $('#startBatch'); if (sbt) sbt.onclick = function () { App.go('#/combine-scan?first=' + encodeURIComponent(k.lr)); };
         var tg = $('#toGrn'); if (tg) tg.onclick = function () { App.go('#/docket-grn?lr=' + encodeURIComponent(k.lr)); };
@@ -176,7 +177,10 @@
           }
           if (window.XLSX) mk(); else { s.onload = mk; document.head.appendChild(s); }
         };
-      });
+      }
+      function load(fresh) { return App.swr('docket:' + r.arg, function () { return api('docketDetails', { q: r.arg }); }, function (d) { App.keepState(view, function () { paint(d); }); }, { fresh: fresh }); }
+      App.live(function () { load(false); });
+      return load(false);
     }
   };
 
@@ -190,7 +194,7 @@
       view.innerHTML = '<div id="cbody"><div class="center muted" style="padding:30px"><span class="spinner"></span></div></div>';
       var addDraft = { lr: '', boxes: '', dm: '-1', sh: '-1', also: false };
       function load(fresh) {
-        return App.swr('arrivedDockets', function () { return api('arrivedDockets'); }, function (d) { draw(d); }, { fresh: fresh });
+        return App.swr('arrivedDockets', function () { return api('arrivedDockets'); }, function (d) { App.keepState($('#cbody'), function () { draw(d); }); }, { fresh: fresh });
       }
       function selCount() { return Object.keys(sel).filter(function (k) { return sel[k]; }).length; }
       function row(x, comb) {
@@ -245,6 +249,7 @@
           }).catch(function (e) { busy(btn, false); toast(e.message, 4500); });
         };
       }
+      App.live(function () { load(false); });
       return load();
     }
   };
@@ -326,22 +331,27 @@
     render: function (view, r) {
       if (!App.me.user.admin) { view.innerHTML = '<div class="card">Admin only.</div>'; return; }
       var tab = r.arg || 'users';
-      return api('adminUsers', {}, { quiet: true }).then(function (u) { draw(u); }).catch(function (e) {
-        if (e.code !== 'adminlock') throw e;
+      view.innerHTML = tabs() + '<div id="atab"></div>';
+      $$('[data-t]', view).forEach(function (b) { b.onclick = function () { App.go('#/admin/' + b.dataset.t); }; });
+      var t = $('#atab');
+      function lockUi() {
         view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>Tap the button and SIMS will send a one-time link (valid for 10 minutes) to the admin email. Open that link on this device.</p><button class="btn pri" id="reqA">Send me the admin link</button><div id="reqMsg" class="muted" style="margin-top:10px"></div></div>';
         $('#reqA').onclick = function () {
           busy($('#reqA'), true, 'Sending…');
           api('requestAdmin', { device: App.deviceInfo().type }).then(function () { $('#reqMsg').innerHTML = 'Link sent to the admin email. After you open it, you will come back here.'; busy($('#reqA'), false); }).catch(function (e2) { $('#reqMsg').innerHTML = '<span class="err">' + esc(e2.message) + '</span>'; busy($('#reqA'), false); });
         };
-      });
-      function tabs() { return '<div class="tabs">' + ADMIN_TABS.map(function (t) { return '<button data-t="' + t[0] + '"' + (t[0] === tab ? ' class="on"' : '') + '>' + t[1] + '</button>'; }).join('') + '</div>'; }
-      function draw(u) {
-        view.innerHTML = tabs() + '<div id="atab"></div>';
-        $$('[data-t]', view).forEach(function (b) { b.onclick = function () { App.go('#/admin/' + b.dataset.t); }; });
-        var t = $('#atab');
-        if (tab === 'users') usersTab(t, u); else if (tab === 'devices') devicesTab(t); else if (tab === 'settings') settingsTab(t); else if (tab === 'feeds') feedsTab(t); else filesTab(t);
       }
-      function usersTab(t, u) {
+      function fail(e, had) { if (e.code === 'adminlock') { lockUi(); return; } if (!had) t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; }
+      function tabSwr(key, fetchFn, paint, fresh) { return App.swr(key, fetchFn, function (d) { App.keepState(t, function () { paint(d); }); }, { fresh: fresh, onError: fail, silent: true }); }
+      function anyPanelOpen() { return $$('[id^="pm-"]', t).some(function (b) { return b.innerHTML; }); }
+      if (tab === 'users') usersTab(t, false); else if (tab === 'devices') devicesTab(t, false); else if (tab === 'settings') settingsTab(t, false); else if (tab === 'feeds') feedsTab(t, false); else filesTab(t, false);
+      if (tab !== 'settings') App.live(function () { if (tab === 'users') usersTab(t, false); else if (tab === 'devices') devicesTab(t, false); else if (tab === 'feeds') feedsTab(t, false); else filesTab(t, false); });
+      function tabs() { return '<div class="tabs">' + ADMIN_TABS.map(function (t) { return '<button data-t="' + t[0] + '"' + (t[0] === tab ? ' class="on"' : '') + '>' + t[1] + '</button>'; }).join('') + '</div>'; }
+      function usersTab(t, fresh) {
+        t.innerHTML = '<span class="spinner"></span>';
+        tabSwr('adminUsers', function () { return api('adminUsers', {}, { quiet: true }); }, function (u) { if (anyPanelOpen()) return; paintUsers(t, u); }, fresh);
+      }
+      function paintUsers(t, u) {
         var h = '';
         if (u.pending.length) h += '<h3>Pending login approvals</h3>' + u.pending.map(function (p) { return '<div class="card"><div class="bold">' + esc(p.name) + ' · ' + esc(p.device) + '</div><div class="small muted">' + esc(stamp(p.at)) + '</div><label class="f">Device label (optional)</label><input type="text" data-pl="' + esc(p.id) + '" maxlength="30" value="' + esc(p.lastLabel || '') + '"><div class="row" style="margin-top:10px"><button class="btn pri" data-ap="' + esc(p.id) + '">Approve</button><button class="btn bad" data-rj="' + esc(p.id) + '">Reject</button></div></div>'; }).join('');
         h += '<h3>Names</h3>' + u.users.map(function (x) {
@@ -349,10 +359,10 @@
             (x.admin ? '' : '<div class="row"><button class="btn" data-pm="' + esc(x.id) + '">Permissions</button>' + (x.status === 'active' ? '<button class="btn" data-st="paused" data-id="' + esc(x.id) + '">Pause</button>' : '<button class="btn" data-st="active" data-id="' + esc(x.id) + '">Resume</button>') + '<button class="btn bad" data-st="removed" data-id="' + esc(x.id) + '">Remove</button></div>') + '</div><div id="pm-' + esc(x.id) + '"></div></div>';
         }).join('') + '<h3>Add a name</h3><div class="card"><div class="row"><input type="text" id="newName" class="grow" maxlength="30" placeholder="Name"><button class="btn pri" id="addName">Add</button></div><div class="small muted" style="margin-top:6px">New names get the default permissions.</div></div>';
         t.innerHTML = h;
-        $$('[data-ap]', t).forEach(function (b) { b.onclick = function () { api('adminDecide', { id: b.dataset.ap, decision: 'approve', label: $('[data-pl="' + b.dataset.ap + '"]', t).value }).then(function () { toast('Approved.'); App.route(); }).catch(function (e) { toast(e.message); }); }; });
-        $$('[data-rj]', t).forEach(function (b) { b.onclick = function () { api('adminDecide', { id: b.dataset.rj, decision: 'reject' }).then(function () { App.route(); }).catch(function (e) { toast(e.message); }); }; });
-        $$('[data-st]', t).forEach(function (b) { b.onclick = function () { var go = function () { api('adminSetStatus', { id: b.dataset.id, status: b.dataset.st }).then(function () { App.route(); }).catch(function (e) { toast(e.message); }); }; if (b.dataset.st === 'removed') App.confirm('Remove this name? It disappears from the login list; past records keep the name.', 'Remove').then(function (y) { if (y) go(); }); else go(); }; });
-        $('#addName').onclick = function () { api('adminAddUser', { name: $('#newName').value }).then(function () { App.route(); }).catch(function (e) { toast(e.message); }); };
+        $$('[data-ap]', t).forEach(function (b) { b.onclick = function () { api('adminDecide', { id: b.dataset.ap, decision: 'approve', label: $('[data-pl="' + b.dataset.ap + '"]', t).value }).then(function () { toast('Approved.'); usersTab(t, true); }).catch(function (e) { toast(e.message); }); }; });
+        $$('[data-rj]', t).forEach(function (b) { b.onclick = function () { api('adminDecide', { id: b.dataset.rj, decision: 'reject' }).then(function () { usersTab(t, true); }).catch(function (e) { toast(e.message); }); }; });
+        $$('[data-st]', t).forEach(function (b) { b.onclick = function () { var go = function () { api('adminSetStatus', { id: b.dataset.id, status: b.dataset.st }).then(function () { usersTab(t, true); }).catch(function (e) { toast(e.message); }); }; if (b.dataset.st === 'removed') App.confirm('Remove this name? It disappears from the login list; past records keep the name.', 'Remove').then(function (y) { if (y) go(); }); else go(); }; });
+        $('#addName').onclick = function () { api('adminAddUser', { name: $('#newName').value }).then(function () { usersTab(t, true); }).catch(function (e) { toast(e.message); }); };
         $$('[data-pm]', t).forEach(function (b) {
           b.onclick = function () {
             var usr = u.users.filter(function (x) { return x.id === b.dataset.pm; })[0], box = $('#pm-' + usr.id, t);
@@ -365,40 +375,42 @@
         });
       }
       function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: dockets, invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket History', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit' }[p] || p; }
-      function devicesTab(t) {
+      function devicesTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
-        api('adminDevices').then(function (d) {
+        tabSwr('adminDevices', function () { return api('adminDevices'); }, function (d) {
           t.innerHTML = d.devices.length ? d.devices.map(function (x) { return '<div class="card"><div class="row between"><div><div class="bold">' + esc(x.name + (x.label ? ' (' + x.label + ')' : '')) + '</div><div class="small muted">' + esc(x.device) + '</div><div class="small">Logged in since ' + esc(C.fmtDay(Math.floor((x.since + 19800000) / 86400000) * 86400000)) + ' (' + x.days + ' days) · last active ' + esc(App.ago(x.lastActive)) + '</div></div><button class="btn bad" data-lo="' + esc(x.userId) + '">Log out</button></div></div>'; }).join('') : '<div class="card muted">Nobody is logged in.</div>';
-          $$('[data-lo]', t).forEach(function (b) { b.onclick = function () { api('adminLogoutUser', { userId: b.dataset.lo }).then(function () { toast('Logged out.'); devicesTab(t); }); }; });
-        }).catch(function (e) { t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+          $$('[data-lo]', t).forEach(function (b) { b.onclick = function () { api('adminLogoutUser', { userId: b.dataset.lo }).then(function () { toast('Logged out.'); devicesTab(t, true); }); }; });
+        }, fresh);
       }
-      function settingsTab(t) {
+      function settingsTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
-        api('adminSettings').then(function (d) {
+        tabSwr('adminSettings', function () { return api('adminSettings'); }, function (d) {
+          if (t.dataset.dirty) return;
           var s = d.settings, days = s.officeDays.split(',').map(Number), dn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           t.innerHTML = '<div class="card"><h3 style="margin-top:0">Office hours</h3><div class="row"><div class="grow"><label class="f">Opens</label><input type="text" id="sS" value="' + esc(s.officeStart) + '" placeholder="10:00"></div><div class="grow"><label class="f">Closes</label><input type="text" id="sE" value="' + esc(s.officeEnd) + '" placeholder="19:00"></div></div>' +
             '<label class="f">Working days</label><div class="row">' + [1, 2, 3, 4, 5, 6, 0].map(function (d2) { return '<label class="chip"><input type="checkbox" data-d="' + d2 + '"' + (days.indexOf(d2) >= 0 ? ' checked' : '') + '> ' + dn[d2] + '</label>'; }).join('') + '</div>' +
             '<h3>Orders</h3><label class="f">Order expiry (days)</label><input type="number" id="sX" value="' + esc(s.orderExpiryDays) + '"><h3>Scanning</h3><label class="f">Scan sounds</label><select id="sSnd"><option value="off">Off</option><option value="on">On</option></select>' +
             '<h3>Logins</h3><label class="item"><input type="checkbox" id="sAuto"' + (s.autoAccept === 'on' ? ' checked' : '') + '><span>Auto-accept logins (turn OFF at go-live)</span></label><div class="small muted">Admin email: ' + esc(s.adminEmail) + '</div><button class="btn pri" id="sSave" style="margin-top:14px">Save settings</button></div>';
           $('#sSnd').value = s.scanSounds;
+          t.oninput = t.onchange = function () { t.dataset.dirty = '1'; };
           $('#sSave').onclick = function () {
             var dd = $$('[data-d]', t).filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.d; }).sort().join(',');
             api('adminSaveSettings', { settings: { officeStart: $('#sS').value.trim(), officeEnd: $('#sE').value.trim(), officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off' } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
           };
-        }).catch(function (e) { t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+        }, fresh);
       }
-      function feedsTab(t) {
+      function feedsTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
-        Promise.all([api('adminFeedStatus'), api('adminFeedIssues')]).then(function (a) {
+        tabSwr('adminFeeds', function () { return Promise.all([api('adminFeedStatus'), api('adminFeedIssues')]); }, function (a) {
           var nm = { transit: 'Transit', price: 'Price list', rack: 'Rack bin list', relay: 'Relay file' };
           t.innerHTML = '<div class="row" style="margin-bottom:10px"><button class="btn pri" id="fr">Refresh now</button><span class="muted small" id="frm"></span></div>' + a[0].meta.map(function (m) { return '<div class="card"><div class="row between"><div class="bold">' + nm[m.source] + '</div><span class="chip ' + (m.status === 'ok' ? 'ok' : 'warn') + '">' + esc(m.status) + '</span></div><div class="small muted">Last update ' + esc(m.updatedAt ? stamp(Number(m.updatedAt)) : 'never') + (m.rows ? ' · ' + m.rows + ' rows' : '') + (m.message ? ' · ' + esc(m.message) : '') + '</div></div>'; }).join('') +
             '<h3>Feed issues (' + a[1].issues.length + ')</h3><div class="card tscroll">' + (a[1].issues.length ? '<table class="dt"><thead><tr><th>Source</th><th>Row</th><th>Problem</th></tr></thead><tbody>' + a[1].issues.map(function (i) { return '<tr><td>' + esc(i.source) + '</td><td>' + esc(i.row) + '</td><td>' + esc(i.reason) + '</td></tr>'; }).join('') + '</tbody></table>' : '<span class="muted">No issues.</span>') + '</div>';
-          $('#fr').onclick = function () { busy($('#fr'), true, 'Refreshing…'); api('refreshTransit').then(function () { return App.refreshLists(); }).then(function () { feedsTab(t); }).catch(function (e) { toast(e.message); busy($('#fr'), false); }); };
-        }).catch(function (e) { t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+          $('#fr').onclick = function () { busy($('#fr'), true, 'Refreshing…'); api('refreshTransit').then(function () { return App.refreshLists(); }).then(function () { feedsTab(t, true); }).catch(function (e) { toast(e.message); busy($('#fr'), false); }); };
+        }, fresh);
       }
-      function filesTab(t) {
+      function filesTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
-        api('adminFiles').then(function (d) { t.innerHTML = '<div class="card"><div class="row between"><div class="bold">POD helper</div><button class="btn" id="tpod">Test</button></div><div class="small muted" id="tpodr"></div></div><div class="card"><div class="list">' + d.files.map(function (f) { return '<div class="item"><div class="grow"><div class="bold">' + esc(f.name) + '</div><div class="small muted">' + esc(f.type) + '</div></div><span class="chip ' + (f.status === 'ok' ? 'ok' : 'bad') + '">' + (f.status === 'ok' ? 'OK' : 'MISSING') + '</span></div>'; }).join('') + '</div></div>'; $('#tpod').onclick = function () { $('#tpodr').textContent = 'Testing…'; api('adminTestPod').then(function (r) { $('#tpodr').textContent = r.ok ? 'Working · ' + r.account + ' · ' + (r.used / 1073741824).toFixed(2) + ' GB used of ' + (r.limit / 1073741824).toFixed(0) + ' GB' : 'Not working: ' + (r.error || 'no reply'); }).catch(function (e) { $('#tpodr').textContent = e.message; }); }; }).catch(function (e) { t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+        tabSwr('adminFiles', function () { return api('adminFiles'); }, function (d) { t.innerHTML = '<div class="card"><div class="row between"><div class="bold">POD helper</div><button class="btn" id="tpod">Test</button></div><div class="small muted" id="tpodr"></div></div><div class="card"><div class="list">' + d.files.map(function (f) { return '<div class="item"><div class="grow"><div class="bold">' + esc(f.name) + '</div><div class="small muted">' + esc(f.type) + '</div></div><span class="chip ' + (f.status === 'ok' ? 'ok' : 'bad') + '">' + (f.status === 'ok' ? 'OK' : 'MISSING') + '</span></div>'; }).join('') + '</div></div>'; $('#tpod').onclick = function () { $('#tpodr').textContent = 'Testing…'; api('adminTestPod').then(function (r) { $('#tpodr').textContent = r.ok ? 'Working · ' + r.account + ' · ' + (r.used / 1073741824).toFixed(2) + ' GB used of ' + (r.limit / 1073741824).toFixed(0) + ' GB' : 'Not working: ' + (r.error || 'no reply'); }).catch(function (e) { $('#tpodr').textContent = e.message; }); }; }, fresh);
       }
     }
   };
