@@ -175,7 +175,7 @@ var SIMSPrint = (function () {
       head1H: 28, widths: [14, 30, 6, 13, 13, 12, 12], headings: ['Part No', 'Description', 'Qty', 'Invoice', 'LR', 'LR date', 'Mark'],
       items: items, footerLeft: 'SIMS · ' + s.title,
       headHtml: function () {
-        return '<div class="sp-tag">' + esc(s.title) + '</div><div class="sp-sub" style="margin-top:1.4mm">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + ' · ' + s.rows.length + ' lines</div>';
+        return '<div class="sp-tag">' + esc(s.title) + '</div><div class="sp-sub" style="margin-top:1.4mm">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + ' · ' + s.rows.length + ' lines · ! = overdue</div>';
       },
       rowHtml: function (it) {
         var l = it.l;
