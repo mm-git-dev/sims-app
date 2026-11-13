@@ -158,6 +158,7 @@
           }).join('') + '</div></div>';
         }
         var acts = [];
+        if (k.printed && App.can('docketGrn')) acts.push('<button class="btn pri" id="rpGrn">Reprint Docket GRN sheet</button>');
         if (k.printed && !k.combined && k.progress.state !== 'done' && App.can('combinedGrn')) acts.push('<button class="btn pri" id="startBatch">Start combined batch</button>');
         if (!k.printed && App.can('docketGrn')) acts.push('<button class="btn pri" id="toGrn">Open in Docket GRN</button>');
         acts.push('<button class="btn" id="xl">Download Excel</button>');
@@ -167,6 +168,11 @@
         view.innerHTML = html;
         if (App.docketExtras) App.docketExtras($('#dxExtras', view), k, function () { load(true); });
         $$('[data-rb]', view).forEach(function (b) { b.onclick = function () { App.pickGroups('Reprint batch', function (g) { api('batchReprint', { id: b.dataset.rb, groups: g }).then(function (x) { return printRackSheets(x.sheets); }).catch(function (e) { toast(e.message); }); }); }; });
+        var rpg = $('#rpGrn'); if (rpg) rpg.onclick = function () {
+          busy(rpg, true, 'Preparing…');
+          api('docketPrint', { lr: k.lr, reprint: true }).then(function (x) { return printPages(SIMSPrint.docketSheet(x.sheet, siteBase())); })
+            .then(function () { busy(rpg, false); }).catch(function (e) { busy(rpg, false); toast(e.message, 4000); });
+        };
         var sbt = $('#startBatch'); if (sbt) sbt.onclick = function () { App.go('#/combine-scan?first=' + encodeURIComponent(k.lr)); };
         var tg = $('#toGrn'); if (tg) tg.onclick = function () { App.go('#/docket-grn?lr=' + encodeURIComponent(k.lr)); };
         $('#xl').onclick = function () {
