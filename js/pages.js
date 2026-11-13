@@ -45,7 +45,7 @@
     render: function (view, r) {
       view.innerHTML = '<div class="card"><label class="f" style="margin-top:0">Docket number</label><div class="row"><input type="text" id="dlr" class="grow" inputmode="numeric" placeholder="Enter or scan the docket number" autocomplete="off">' +
         '<button class="btn hide" id="dScan">Scan</button><button class="btn pri" id="dGo">Go</button></div></div><div id="dstep"></div><h3>Open dockets</h3><div class="card" id="dopen"><span class="spinner"></span></div>';
-      var inp = $('#dlr'), step = $('#dstep');
+      var inp = $('#dlr'), step = $('#dstep'), podDoc = null;
       function go() { var v = inp.value.replace(/\s+/g, ''); if (v) lookup(v); }
       $('#dGo').onclick = go; inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
       var sb = $('#dScan'); if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.matchMedia('(pointer:coarse)').matches) sb.classList.remove('hide');
@@ -94,10 +94,11 @@
           '<label class="f">Total boxes as per docket</label><input type="number" id="nBoxes" inputmode="numeric" min="1" placeholder="Total number of boxes in the docket">' +
           '<div class="row" style="margin-top:6px"><div class="grow"><label class="f">Damaged</label><input type="number" id="nDam" inputmode="numeric" min="-1" value="-1"></div><div class="grow"><label class="f">Short</label><input type="number" id="nShort" inputmode="numeric" min="-1" value="-1"></div></div>' +
           '<div class="small muted" style="margin-top:6px">−1 means not entered. Enter damaged and short separately; 0 and 0 = OK.</div>' +
-          '<div style="margin:10px 0">Remark for transporter: <span class="bold" id="nRem">NOT ENTERED</span></div><button class="btn pri big" id="nPrint">Print Docket GRN Sheet</button></div>';
+          '<div style="margin:10px 0">Remark for transporter: <span class="bold" id="nRem">NOT ENTERED</span></div>' + (App.can('uploadPod') ? '<div class="row" style="margin-bottom:6px"><button class="btn" id="nPod">Add POD photo (optional)</button><span class="small muted" id="nPodInfo"></span></div><input type="text" id="nPodNote" class="hide" placeholder="POD note (optional)" maxlength="200" style="margin-bottom:10px">' : '') + '<button class="btn pri big" id="nPrint">Print Docket GRN Sheet</button></div>';
         var b = $('#nBoxes'), dm = $('#nDam'), sh = $('#nShort');
         function upd() { $('#nRem').textContent = remarkPreview(dm.value, sh.value); }
-        dm.oninput = sh.oninput = upd; b.focus();
+        dm.oninput = sh.oninput = upd; b.focus(); podDoc = null;
+        var pb = $('#nPod'); if (pb) pb.onclick = function () { App.pickDoc({ title: 'POD photo' }).then(function (d) { if (d) { podDoc = d; $('#nPodInfo').textContent = 'Photo ready ✓'; $('#nPodNote').classList.remove('hide'); } }); };
         $('#nPrint').onclick = function () {
           var boxes = parseInt(b.value, 10), d = parseInt(dm.value, 10), s = parseInt(sh.value, 10);
           if (!(boxes >= 1)) { toast('Enter the total boxes as per docket.'); b.focus(); return; }
@@ -109,6 +110,7 @@
       function doPrint(args, btn) {
         busy(btn, true, 'Preparing…');
         api('docketPrint', args).then(function (d) {
+          if (podDoc && !args.reprint) { var pd = podDoc, pn = ($('#nPodNote') || {}).value || ''; podDoc = null; App.uploadDoc(d.sheet.lr, 'POD', pd, pn).then(function (r) { toast(r.status === 'queued' ? 'POD saved temporarily; it will move automatically.' : 'POD saved.'); }).catch(function (e) { toast('POD not saved: ' + e.message, 6000); }); }
           var pages = SIMSPrint.docketSheet(d.sheet, siteBase());
           return printPages(pages).then(function () {
             step.innerHTML = '<div class="card ok"><h2 style="margin-top:0">Done</h2><p>Docket <span class="mono bold">' + esc(d.sheet.lr) + '</span> ' + (args.reprint ? 'reprinted.' : 'marked <b>Arrived</b>.') + '</p><div class="row"><button class="btn pri" id="nextD">Next docket</button><button class="btn" id="againD">Print again</button></div></div>';
@@ -148,7 +150,7 @@
           '<div class="kv"><div>Boxes</div><div>' + (k.printed ? esc(k.boxes) : '<span class="muted">Not printed yet</span>') + '</div><div>Remark</div><div>' + (k.printed ? esc(k.remarkLine) : '—') + '</div>' +
           '<div>GRN</div><div>' + esc(k.progress.state === 'done' ? 'GRN Done' : k.progress.state === 'partly' ? "Partly GRN'd" : 'Not GRN\'d') + ' · ' + k.progress.done + ' of ' + k.progress.total + ' lines</div>' +
           (k.printed ? '<div>Arrived</div><div>' + esc(stamp(k.arrivedAt)) + ' · ' + esc(k.arrivedBy + (k.arrivedLabel ? ' (' + k.arrivedLabel + ')' : '')) + '</div>' : '') +
-          '<div>Documents</div><div>0</div>' + (k.totalValue !== undefined ? '<div>Total value</div><div class="bold">₹ ' + C.fmtINR(k.totalValue) + '</div>' : '') + '</div></div>';
+          '<div>Documents</div><div>' + (k.docs || []).length + '</div>' + (k.totalValue !== undefined ? '<div>Total value</div><div class="bold">₹ ' + C.fmtINR(k.totalValue) + '</div>' : '') + '</div></div>';
         if (k.batchInfo && k.batchInfo.length) {
           html += '<h3>Combined batches</h3><div class="card"><div class="list">' + k.batchInfo.map(function (b) {
             return '<div class="item"><div class="grow">Combined in batch <b>' + esc(b.name) + '</b><div class="small muted">' + esc(stamp(b.at)) + ' · ' + esc(b.by + (b.label ? ' (' + b.label + ')' : '')) + '</div></div>' + (App.can('combinedGrn') ? '<button class="btn" data-rb="' + esc(b.id) + '">Reprint batch</button>' : '') + '</div>';
@@ -159,9 +161,10 @@
         if (!k.printed && App.can('docketGrn')) acts.push('<button class="btn pri" id="toGrn">Open in Docket GRN</button>');
         acts.push('<button class="btn" id="xl">Download Excel</button>');
         html += '<div class="row" style="margin:12px 0">' + acts.join('') + '</div>';
-        html += '<h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
-          k.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+        html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
+          k.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
         view.innerHTML = html;
+        if (App.docketExtras) App.docketExtras($('#dxExtras', view), k, function () { App.route(); });
         $$('[data-rb]', view).forEach(function (b) { b.onclick = function () { App.pickGroups('Reprint batch', function (g) { api('batchReprint', { id: b.dataset.rb, groups: g }).then(function (x) { return printRackSheets(x.sheets); }).catch(function (e) { toast(e.message); }); }); }; });
         var sbt = $('#startBatch'); if (sbt) sbt.onclick = function () { App.go('#/combine-scan?first=' + encodeURIComponent(k.lr)); };
         var tg = $('#toGrn'); if (tg) tg.onclick = function () { App.go('#/docket-grn?lr=' + encodeURIComponent(k.lr)); };
@@ -395,10 +398,9 @@
       }
       function filesTab(t) {
         t.innerHTML = '<span class="spinner"></span>';
-        api('adminFiles').then(function (d) { t.innerHTML = '<div class="card"><div class="list">' + d.files.map(function (f) { return '<div class="item"><div class="grow"><div class="bold">' + esc(f.name) + '</div><div class="small muted">' + esc(f.type) + '</div></div><span class="chip ' + (f.status === 'ok' ? 'ok' : 'bad') + '">' + (f.status === 'ok' ? 'OK' : 'MISSING') + '</span></div>'; }).join('') + '</div></div>'; }).catch(function (e) { t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+        api('adminFiles').then(function (d) { t.innerHTML = '<div class="card"><div class="row between"><div class="bold">POD helper</div><button class="btn" id="tpod">Test</button></div><div class="small muted" id="tpodr"></div></div><div class="card"><div class="list">' + d.files.map(function (f) { return '<div class="item"><div class="grow"><div class="bold">' + esc(f.name) + '</div><div class="small muted">' + esc(f.type) + '</div></div><span class="chip ' + (f.status === 'ok' ? 'ok' : 'bad') + '">' + (f.status === 'ok' ? 'OK' : 'MISSING') + '</span></div>'; }).join('') + '</div></div>'; $('#tpod').onclick = function () { $('#tpodr').textContent = 'Testing…'; api('adminTestPod').then(function (r) { $('#tpodr').textContent = r.ok ? 'Working · ' + r.account + ' · ' + (r.used / 1073741824).toFixed(2) + ' GB used of ' + (r.limit / 1073741824).toFixed(0) + ' GB' : 'Not working: ' + (r.error || 'no reply'); }).catch(function (e) { $('#tpodr').textContent = e.message; }); }; }).catch(function (e) { t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
     }
   };
 
-  App.startWhenReady();
 })();

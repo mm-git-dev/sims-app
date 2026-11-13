@@ -293,15 +293,26 @@ var SIMS_CORE = (function () {
     if (d.arrivedAt) return 'Arrived';
     return 'Not arrived';
   }
+  /** docs: {pod, claim, laterReceipts, deliveries} counts (documents of each kind; deliveries = late deliveries recorded). */
   function docketFlags(d, docs) {
     docs = docs || {};
     var f = [];
     if (remarkText(d) === 'NOT ENTERED') f.push('Remark not entered');
-    if (!docs.pod && !docs.podRemoved) f.push('POD missing');
+    if (!docs.pod) f.push('POD missing');
     if (Number(d.short) > 0 && !docs.claim) f.push('Claim sheet missing');
-    if (d.lateReceipt && !docs.laterReceipt) f.push('Later receipt sheet missing');
+    if ((docs.deliveries || 0) > (docs.laterReceipts || 0)) f.push('Later receipt sheet missing');
     if (d.lrMismatch) f.push('LR not matching POMS');
     return f;
+  }
+  /** Claim state for a docket with short boxes. deliveries: [{boxes, poms}] */
+  function claimState(d, deliveries) {
+    var sh = Number(d.short);
+    if (!(sh > 0)) return { state: 'none', stillShort: 0, late: 0 };
+    var late = 0; (deliveries || []).forEach(function (x) { late += Number(x.boxes) || 0; });
+    var still = Math.max(0, sh - late);
+    if (d.claimSettled) return { state: 'settled', stillShort: still, late: late };
+    var open = still > 0 || (deliveries || []).some(function (x) { return !x.poms; });
+    return { state: open ? 'open' : 'closed', stillShort: still, late: late };
   }
 
   // ---------- permissions ----------
@@ -402,7 +413,7 @@ var SIMS_CORE = (function () {
     fmtINR: fmtINR, fmtLakh: fmtLakh, lineValue: lineValue, estimateAmount: estimateAmount,
     comparePart: comparePart, sortByPart: sortByPart, location: location, GROUP_TITLES: GROUP_TITLES,
     partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, detectGrn: detectGrn,
-    grnProgress: grnProgress, remarkText: remarkText, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags,
+    grnProgress: grnProgress, remarkText: remarkText, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
     PERMS: PERMS, PERM_INFO: PERM_INFO, allPerms: allPerms, can: can, officeOpen: officeOpen, canNow: canNow,
     expectedDate: expectedDate, isOverdue: isOverdue, parsePackingList: parsePackingList, inv4: inv4,
     HEAD_TRANSIT: HEAD_TRANSIT, HEAD_PRICE: HEAD_PRICE, HEAD_RACK: HEAD_RACK

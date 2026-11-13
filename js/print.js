@@ -75,9 +75,9 @@ var SIMSPrint = (function () {
       },
       rowHtml: function (it) {
         var l = it.l;
-        return '<tr' + (l.party ? ' class="party"' : '') + '><td class="fit pn">' + (l.party ? '<span class="tri"></span>' : '') + esc(l.part) + '</td>' +
+        return '<tr' + (l.party ? ' class="party"' : '') + '><td class="fit pn">' + (l.claim ? '<span class="claimdot">' + esc(l.claim) + '</span>' : '') + (l.party ? '<span class="tri"></span>' : '') + esc(l.part) + '</td>' +
           '<td class="desc fit">' + esc(l.desc) + '</td><td class="c fit">' + esc(l.qty) + '</td><td class="c fit">' + locHtml(l) + '</td>' +
-          '<td class="inv fit">' + esc(l.inv) + '</td><td>' + (l.claim ? '<span class="claimdot">' + esc(l.claim) + '</span>' : '') + '</td></tr>';
+          '<td class="inv fit">' + esc(l.inv) + '</td><td></td></tr>';
       },
       trailerH: 6 + 6 + 2 + 5.5 * (inv.length + 1) + 1,
       trailerHtml: function () {

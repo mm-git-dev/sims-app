@@ -149,7 +149,7 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1 };
 
   function route() {
@@ -196,6 +196,9 @@
     var m = [{ k: 'home', t: 'Home', h: '#/home' }];
     if (App.can('docketGrn')) m.push({ k: 'docket-grn', t: 'Docket GRN', h: '#/docket-grn' });
     if (App.can('combinedGrn')) m.push({ k: 'combined', t: 'Combined GRN', h: '#/combined' });
+    if (App.can('pendingItems')) m.push({ k: 'pending-items', t: 'Pending Items', h: '#/pending-items' });
+    if (App.can('pendingClaims')) m.push({ k: 'pending-claims', t: 'Pending Claims', h: '#/pending-claims' });
+    if (App.can('missedClaims')) m.push({ k: 'missed-claims', t: 'Missed Claims', h: '#/missed-claims' });
     if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
     return m;
   }
@@ -224,6 +227,7 @@
     $('#themeBtn').onclick = function () { setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true); refreshMenu(); };
     $('#logoutBtn').onclick = function () { api('logout', {}, { quiet: true }).catch(function () {}).then(function () { endSession(''); }); };
     $('#who').textContent = App.who();
+    $$('#side a.nav').forEach(function (a) { a.classList.toggle('on', a.dataset.r === menuKey(App.page)); });
     $$('#side a.nav').forEach(function (a) { a.addEventListener('click', function () { $('#side').classList.remove('open'); $('#scrim').classList.add('hide'); }); });
   }
   function setTheme(t, save) {
