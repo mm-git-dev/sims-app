@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var App = window.App, C = SIMS_CORE, $ = App.$, $$ = App.$$, esc = App.esc, api = App.api, toast = App.toast;
-  function siteBase() { return location.href.split('#')[0]; }
+  function siteBase() { return (window.SIMS_CONFIG && SIMS_CONFIG.SITE) || location.href.split('#')[0]; } // the QR on printed sheets always points to the real site, never localhost
   function stamp(ms) { return C.fmtStamp(ms); }
   function chipFor(status) { var c = status === 'GRN Done' ? 'ok' : status === "Partly GRN'd" ? 'acc' : status === 'Combined' ? 'acc' : status === 'Arrived' ? 'warn' : ''; return '<span class="chip ' + c + '">' + esc(status) + '</span>'; }
   function flagChips(fl) { return (fl || []).map(function (f) { return '<span class="chip bad">' + esc(f) + '</span>'; }).join(' '); }
