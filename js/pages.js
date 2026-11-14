@@ -172,11 +172,24 @@
         if (k.printed && !k.combined && k.progress.state !== 'done' && App.can('combinedGrn')) acts.push('<button class="btn pri" id="startBatch">Start combined batch</button>');
         if (!k.printed && App.can('docketGrn')) acts.push('<button class="btn pri" id="toGrn">Open in Docket GRN</button>');
         acts.push('<button class="btn" id="xl">Download Excel</button>');
+        if (d.archived) { acts.length = 0; acts.push('<button class="btn" id="xl">Download Excel</button>'); html = '<div class="card warn small">From the archive (older than 60 days). Read only.</div>' + html; }
         html += '<div class="row" style="margin:12px 0">' + acts.join('') + '</div>';
+        if (App.can('docketHistory')) html += '<details class="card" id="dxTl"><summary>Timeline</summary><div id="dxTlBody" style="margin-top:8px"></div></details>';
         html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
           k.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
         view.innerHTML = html;
-        if (App.docketExtras) App.docketExtras($('#dxExtras', view), k, function () { load(true); });
+        var tl = $('#dxTl', view);
+        if (tl) {
+          var drawTl = function (t) { $('#dxTlBody', view).innerHTML = t.length ? '<div class="list">' + t.map(function (e) { return '<div class="item"><div class="grow"><div class="bold">' + esc(e.text) + '</div><div class="small muted">' + esc(stamp(e.ts)) + (e.by ? ' · ' + esc(e.by + (e.label ? ' (' + e.label + ')' : '')) : ' · system') + (e.detail ? ' · ' + esc(e.detail) : '') + '</div></div></div>'; }).join('') + '</div>' : '<span class="muted">No events recorded.</span>'; };
+          var tlDone = false;
+          tl.addEventListener('toggle', function () {
+            if (!tl.open || tlDone) return; tlDone = true;
+            if (d.timeline) { drawTl(d.timeline); return; }
+            $('#dxTlBody', view).innerHTML = '<span class="spinner"></span>';
+            api('docketHistory', { q: k.lr, lr: k.lr }).then(function (h) { drawTl(h.timeline || []); }).catch(function (e) { tlDone = false; $('#dxTlBody', view).innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+          });
+        }
+        if (App.docketExtras && !d.archived) App.docketExtras($('#dxExtras', view), k, function () { load(true); });
         $$('[data-rb]', view).forEach(function (b) { b.onclick = function () { App.pickGroups('Reprint batch', function (g) { api('batchReprint', { id: b.dataset.rb, groups: g }).then(function (x) { return printRackSheets(x.sheets); }).catch(function (e) { toast(e.message); }); }); }; });
         var rpg = $('#rpGrn'); if (rpg) rpg.onclick = function () {
           busy(rpg, true, 'Preparing…');
@@ -194,7 +207,12 @@
           if (window.XLSX) mk(); else { s.onload = mk; document.head.appendChild(s); }
         };
       }
-      function load(fresh) { return App.swr('docket:' + r.arg, function () { return api('docketDetails', { q: r.arg }); }, function (d) { App.keepState(view, function () { paint(d); }); }, { fresh: fresh }); }
+      function load(fresh) { return App.swr('docket:' + r.arg, function () {
+        return api('docketDetails', { q: r.arg }).then(function (d) {
+          if (d.found || !App.can('docketHistory')) return d;
+          return api('docketHistory', { q: r.arg, lr: r.arg }).then(function (h) { return h.found && h.docket ? { found: true, docket: h.docket, archived: !!h.archived, timeline: h.archived ? h.timeline : undefined } : d; }).catch(function () { return d; });
+        });
+      }, function (d) { App.keepState(view, function () { paint(d); }); }, { fresh: fresh }); }
       App.live(function () { load(false); });
       return load(false);
     }
@@ -391,7 +409,7 @@
           };
         });
       }
-      function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: dockets, invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket History', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit' }[p] || p; }
+      function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: dockets, invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit' }[p] || p; }
       function devicesTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminDevices', function () { return api('adminDevices'); }, function (d) {

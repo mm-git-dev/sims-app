@@ -291,7 +291,6 @@
     if (can('transitList')) m.push({ k: 'transit', t: 'Transit List', h: '#/transit' });
     if (can('partyOrders')) m.push({ k: 'party-orders', t: 'Party Orders', h: '#/party-orders' });
     if (can('boxFinder')) m.push({ k: 'box-finder', t: 'Box Finder', h: '#/box-finder' });
-    if (can('docketHistory')) m.push({ k: 'docket-history', t: 'Docket History', h: '#/docket-history' });
     if (can('uploadPacking')) m.push({ k: 'upload-packing', t: 'Upload Packing List', h: '#/upload-packing' });
     if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
     return m;
@@ -434,7 +433,7 @@
       var ds = docketSuggestions(q), partsHtml = html, dkHtml = '';
       if (ds.dockets.length) dkHtml += '<h3>Dockets</h3><div class="list">' + ds.dockets.map(function (d) { return '<div class="item click" data-dk="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + (d.lrDate ? ' · LR date ' + esc(C.fmtDay(d.lrDate)) : '') + '</div></div><span class="chip">' + esc(d.status) + '</span></div>'; }).join('') + '</div>';
       if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-dk="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? '<span class="chip">' + esc(d.status) + '</span>' : '') + '</div>'; }).join('') + '</div>';
-      if (App.can('searchDockets') && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search all dockets, including finished ones.</p>';
+      if (App.can('searchDockets') && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search everything, including finished and archived dockets.</p>';
       html = dkHtml + partsHtml;
       res.innerHTML = html;
       bindRes();
