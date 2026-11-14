@@ -38,7 +38,7 @@
         var q = ($('#poQ') || {}).value || '';
         if (q) { var uq = q.toUpperCase().replace(/\s+/g, ''); rows = rows.filter(function (o) { return (o.pso + o.mark + (o.party || '').toUpperCase()).replace(/\s+/g, '').indexOf(uq) >= 0; }); }
         var html = '<div class="card"><h3 style="margin-top:0">Add order number</h3>' +
-          '<label class="f">Order number (type only the digits after PSO30256' + yy + ')</label><input type="text" id="aPso" inputmode="numeric" autocomplete="off" placeholder="135 for PSO30256' + yy + '135">' +
+          '<label class="f">Order number (only the digits after PSO30256' + yy + ' — do not type the year ' + yy + ')</label><input type="text" id="aPso" inputmode="numeric" autocomplete="off" placeholder="135 for PSO30256' + yy + '135">' +
           '<div class="row"><div class="grow"><label class="f">Private mark</label><input type="text" id="aMark" autocapitalize="characters" autocomplete="off" maxlength="20" style="text-transform:uppercase"></div><div class="grow"><label class="f">Order date</label><input type="date" id="aDate" value="' + today() + '"></div></div>' +
           '<label class="f">Party name (optional)</label><input type="text" id="aParty" maxlength="60" autocomplete="off"><div style="margin-top:12px"><button class="btn pri" id="aAdd">Add order number</button></div><div id="aMsg" class="small" style="margin-top:8px"></div></div>' +
           '<div class="tabs" id="poChips" style="margin-top:14px">' + states.map(function (s) { return '<button data-s="' + esc(s) + '"' + (filter === s ? ' class="on"' : '') + '>' + esc(s) + '</button>'; }).join('') + '</div>' +
@@ -62,8 +62,16 @@
           var b = this, args = { pso: $('#aPso').value, mark: mk.value, party: $('#aParty').value, orderDate: dateMs($('#aDate').value) };
           if (!args.pso.trim()) { toast('Enter the order number.'); $('#aPso').focus(); return; }
           if (!args.mark.trim()) { toast('Enter the private mark.'); mk.focus(); return; }
-          busy(b, true, 'Adding…');
-          api('orderAdd', args).then(function (x) { toast(x.pso + ' added under ' + x.mark + '.'); take(x); }).catch(function (e) { busy(b, false); $('#aMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+          var typed = args.pso.replace(/\s+/g, ''), oy = String(new Date(args.orderDate + 19800000).getUTCFullYear()).slice(2);
+          var ask = Promise.resolve(true);
+          if (/^\d+$/.test(typed) && typed.length >= 4 && typed.indexOf(oy) === 0) {
+            var short = typed.slice(2);
+            ask = App.confirm('You typed ' + typed + '. The year (' + oy + ') is added automatically, so this would become PSO30256' + oy + typed + '. Did you mean ' + short + ' (PSO30256' + oy + short + ')?', 'Use ' + short, 'Keep ' + typed).then(function (y) { if (y) { args.pso = short; $('#aPso').value = short; } return true; });
+          }
+          ask.then(function () {
+            busy(b, true, 'Adding…');
+            return api('orderAdd', args).then(function (x) { toast(x.pso + ' added under ' + x.mark + '.'); take(x); }).catch(function (e) { busy(b, false); $('#aMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+          });
         };
         $$('[data-al]', body).forEach(function (c) { c.onchange = function () { api('markAlert', { mark: c.dataset.al, on: c.checked }).then(function () { toast('Alert on GRN ' + (c.checked ? 'on' : 'off') + ' for ' + c.dataset.al + '.'); }).catch(function (e) { c.checked = !c.checked; toast(e.message); }); }; });
         $$('[data-ed]', body).forEach(function (b) { b.onclick = function () { editOrder(data.orders.filter(function (o) { return o.pso === b.dataset.ed; })[0]); }; });
