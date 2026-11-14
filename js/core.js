@@ -362,7 +362,7 @@ var SIMS_CORE = (function () {
     printPacking: 'Print packing sheets (marks parts as packed).',
     transitList: 'View and print the Transit List.',
     boxFinder: 'Find which case an invoice part was packed in.',
-    docketHistory: 'On Docket Details, open the timeline of who did what, and find dockets older than 60 days in the archive.',
+    docketHistory: 'On Docket Details, open the timeline of who did what, and find dockets older than 90 days in the archive.',
     uploadPacking: 'Upload the company packing list.',
     refreshTransit: 'Refresh transit now instead of waiting.'
   };

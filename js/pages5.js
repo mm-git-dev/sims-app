@@ -30,7 +30,7 @@
       }
       function paint(d) {
         var k = d.docket, u = App.me.user;
-        var html = '<div class="card"><div class="row between"><div class="mono bold" style="font-size:24px">' + esc(k.lr) + '</div>' + chip(k.status) + '</div>' + (d.archived ? '<div class="small" style="color:var(--warn)">From the archive (older than 60 days)</div>' : '') + (k.pomsLr ? '<div class="small muted">POMS LR ' + esc(k.pomsLr) + '</div>' : '') +
+        var html = '<div class="card"><div class="row between"><div class="mono bold" style="font-size:24px">' + esc(k.lr) + '</div>' + chip(k.status) + '</div>' + (d.archived ? '<div class="small" style="color:var(--warn)">From the archive (older than 90 days)</div>' : '') + (k.pomsLr ? '<div class="small muted">POMS LR ' + esc(k.pomsLr) + '</div>' : '') +
           '<div style="margin:8px 0">' + (k.flags || []).map(function (f) { return '<span class="chip bad">' + esc(f) + '</span>'; }).join(' ') + (k.claim && k.claim.state === 'open' ? '<span class="chip warn">Claim open</span>' : '') + '</div>' +
           '<div class="kv"><div>Boxes</div><div>' + (k.printed ? esc(k.boxes) : '—') + '</div><div>Remark</div><div>' + (k.printed ? esc(k.remarkLine) : '—') + '</div><div>GRN</div><div>' + k.progress.done + ' of ' + k.progress.total + ' lines</div>' +
           (k.printed ? '<div>Arrived</div><div>' + esc(stamp(k.arrivedAt)) + ' · ' + esc((k.arrivedBy || '') + (k.arrivedLabel ? ' (' + k.arrivedLabel + ')' : '')) + '</div>' : '') + '<div>Documents</div><div>' + (k.docs || []).length + '</div>' + (k.totalValue !== undefined ? '<div>Total value</div><div class="bold">₹ ' + C.fmtINR(k.totalValue) + '</div>' : '') + '</div>' +

@@ -172,7 +172,7 @@
         if (k.printed && !k.combined && k.progress.state !== 'done' && App.can('combinedGrn')) acts.push('<button class="btn pri" id="startBatch">Start combined batch</button>');
         if (!k.printed && App.can('docketGrn')) acts.push('<button class="btn pri" id="toGrn">Open in Docket GRN</button>');
         acts.push('<button class="btn" id="xl">Download Excel</button>');
-        if (d.archived) { acts.length = 0; acts.push('<button class="btn" id="xl">Download Excel</button>'); html = '<div class="card warn small">From the archive (older than 60 days). Read only.</div>' + html; }
+        if (d.archived) { acts.length = 0; acts.push('<button class="btn" id="xl">Download Excel</button>'); html = '<div class="card warn small">From the archive (older than 90 days). Read only.</div>' + html; }
         html += '<div class="row" style="margin:12px 0">' + acts.join('') + '</div>';
         if (App.can('docketHistory')) html += '<details class="card" id="dxTl"><summary>Timeline</summary><div id="dxTlBody" style="margin-top:8px"></div></details>';
         html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
