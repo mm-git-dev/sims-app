@@ -404,10 +404,10 @@
     return out;
   }
   /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
-  function docketSuggestions(q) {
+  function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
     q = q.replace(/[ \t]+/g, '');
-    if (!App.can('searchDockets') || !App.open() || !/^[0-9]{3,}$/.test(q) || !App.lists.lrIdx) return out;
+    if ((!anyone && !App.can('searchDockets')) || !App.open() || !/^[0-9]{3,}$/.test(q) || !App.lists.lrIdx) return out;
     var st = {}; try { var c = JSON.parse(ls(cacheKey('openDockets')) || 'null'); if (c) c.d.dockets.forEach(function (x) { st[x.lr] = x.status; }); } catch (e) { /* none */ }
     function scan(map, key, list, mk) {
       var starts = [], inside = [];
@@ -418,6 +418,7 @@
     scan(App.lists.invIdx, 'invoice', out.invoices, function (v) { return { invoice: v.invoice, lr: v.lr, lines: v.lines, status: st[v.lr] || 'In transit' }; });
     return out;
   }
+  App.docketSuggestions = function (q) { return docketSuggestions(q, true); };
   function openSearch() {
     var o = overlay('Search SIMS', '<input type="search" id="sq" placeholder="Part number, LR, invoice or case number" autocomplete="off" autocapitalize="characters"><div id="sres" style="margin-top:12px"></div>');
     var inp = $('#sq', o.el), res = $('#sres', o.el);
@@ -443,7 +444,7 @@
       var kinds = [];
       if (exact) kinds.push({ kind: 'part', part: exact, label: 'Part ' + exact });
       if ((App.can('searchDockets') || App.can('boxScan')) && App.open()) {
-        res.innerHTML += '<p class="muted"><span class="spinner"></span> Searching dockets…</p>';
+        res.innerHTML += '<p class="muted"><span class="spinner"></span> Searching…</p>';
         api('search', { q: q }).then(function (d) {
           kinds = kinds.concat(d.results);
           if (!kinds.length) { res.innerHTML = '<div class="card">Nothing found for “' + esc(q) + '”.</div>'; App.feedback(false); return; }
@@ -457,7 +458,8 @@
     function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else if (k.kind === 'case') App.go('#/box/' + encodeURIComponent(k.caseNo)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
     function bindRes() { $$('[data-dk]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/docket/' + encodeURIComponent(d.dataset.dk)); }; }); $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
     inp.addEventListener('input', function () { run(false); });
-    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') run(true); });
+    inp.setAttribute('enterkeyhint', 'search');
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { run(true); inp.blur(); } });
     showRecent(); setTimeout(function () { inp.focus(); }, 50);
   }
   App.openSearch = openSearch;

@@ -42,7 +42,7 @@
           '<div class="row"><div class="grow"><label class="f">Private mark</label><input type="text" id="aMark" autocapitalize="characters" autocomplete="off" maxlength="20" style="text-transform:uppercase"></div><div class="grow"><label class="f">Order date</label><input type="date" id="aDate" value="' + today() + '"></div></div>' +
           '<label class="f">Party name (optional)</label><input type="text" id="aParty" maxlength="60" autocomplete="off"><div style="margin-top:12px"><button class="btn pri" id="aAdd">Add order number</button></div><div id="aMsg" class="small" style="margin-top:8px"></div></div>' +
           '<div class="tabs" id="poChips" style="margin-top:14px">' + states.map(function (s) { return '<button data-s="' + esc(s) + '"' + (filter === s ? ' class="on"' : '') + '>' + esc(s) + '</button>'; }).join('') + '</div>' +
-          '<input type="search" id="poQ" placeholder="Filter order numbers, marks or parties" value="' + esc(q) + '" style="margin:10px 0">' +
+          '<input type="search" id="poQ" enterkeyhint="search" placeholder="Filter order numbers, marks or parties" value="' + esc(q) + '" style="margin:10px 0">' +
           '<div class="card">' + (rows.length ? '<div class="list">' + rows.map(function (o) {
             return '<div class="item"><div class="grow"><div class="bold mono">' + esc(o.pso) + '</div><div class="small muted">Ordered ' + esc(C.fmtDay(o.orderDate)) + ' · expires ' + esc(C.fmtDay(o.expiresAt)) + (o.party ? ' · ' + esc(o.party) : '') + (o.state === 'Closed' ? ' · ' + esc(o.closeReason || '') + (o.note ? ': ' + esc(o.note) : '') : '') + '</div></div>' +
               '<a class="chip acc" href="#/party-orders/status?mark=' + encodeURIComponent(o.mark) + '" style="text-decoration:none;margin-right:6px">' + esc(o.mark) + '</a><span class="chip ' + (STATE_CHIP[o.state] || '') + '">' + esc(o.state) + '</span>' +
@@ -55,7 +55,8 @@
         }
         body.innerHTML = html;
         $$('#poChips button', body).forEach(function (b) { b.onclick = function () { filter = b.dataset.s; drawNumbers(); }; });
-        $('#poQ').oninput = function () { var pos = this.selectionStart; drawNumbers(); var el = $('#poQ'); el.focus(); try { el.setSelectionRange(pos, pos); } catch (e) { } };
+        $('#poQ').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); this.blur(); } };
+        $('#poQ').oninput =function () { var pos = this.selectionStart; drawNumbers(); var el = $('#poQ'); el.focus(); try { el.setSelectionRange(pos, pos); } catch (e) { } };
         var mk = $('#aMark'); mk.oninput = function () { var p = mk.selectionStart; mk.value = mk.value.toUpperCase(); try { mk.setSelectionRange(p, p); } catch (e) { } };
         $('#aAdd').onclick = function () {
           var b = this, args = { pso: $('#aPso').value, mark: mk.value, party: $('#aParty').value, orderDate: dateMs($('#aDate').value) };
@@ -159,16 +160,25 @@
       function listFiltered() {
         return ALL.filter(function (x) {
           return Object.keys(F).every(function (k) {
-            var v = F[k]; if (!v) return true;
+            var v = F[k]; if (!v || k === 'lrDateRaw') return true;
             var cell = k === 'lrDate' ? (x.lrDate ? C.fmtDay(x.lrDate) : '') : k === 'mark' ? x.mark + ' ' + x.po : String(x[k]);
-            return cell.toUpperCase().indexOf(v) >= 0;
+            return k === 'lrDate' ? cell.toUpperCase() === v : cell.toUpperCase().indexOf(v) >= 0;
           });
         });
       }
       function drawList(host) {
-        var cols = [['part', 'Part'], ['desc', 'Description'], ['qty', 'Qty'], ['invoice', 'Invoice'], ['lr', 'LR'], ['lrDate', 'LR date'], ['mark', 'Mark / PO']];
-        host.innerHTML = '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">' + cols.map(function (c) { return '<input type="search" data-f="' + c[0] + '" placeholder="Filter ' + esc(c[1]) + '" value="' + esc(F[c[0]] || '') + '" style="flex:1 1 130px;min-width:110px">'; }).join('') + '</div><div id="tlRes"></div>';
-        $$('[data-f]', host).forEach(function (i) { i.oninput = function () { F[i.dataset.f] = i.value.trim().toUpperCase(); limit = 200; paintList(); }; });
+        var phone = window.matchMedia('(max-width:800px)').matches;
+        var cols = [['part', 'Part'], ['desc', 'Description'], ['invoice', 'Invoice'], ['lr', 'LR'], ['mark', 'Mark / PO']];
+        if (!phone) { cols.splice(2, 0, ['qty', 'Qty']); cols.splice(5, 0, ['lrDate', 'LR date']); } else { delete F.qty; delete F.lrDate; }
+        host.innerHTML = '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">' + cols.map(function (c) {
+          return c[0] === 'lrDate' ? '<div style="flex:1 1 150px;min-width:140px"><input type="date" data-fd="1" title="LR date" value="' + esc(F.lrDateRaw || '') + '"></div>'
+            : '<input type="search" enterkeyhint="search" data-f="' + c[0] + '" placeholder="Filter ' + esc(c[1]) + '" value="' + esc(F[c[0]] || '') + '" style="flex:1 1 130px;min-width:110px">';
+        }).join('') + '</div><div id="tlRes"></div>';
+        $$('[data-f]', host).forEach(function (i) {
+          i.oninput = function () { F[i.dataset.f] = i.value.trim().toUpperCase(); limit = 200; paintList(); };
+          i.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } };
+        });
+        var fd = $('[data-fd]', host); if (fd) fd.onchange = function () { F.lrDateRaw = fd.value; F.lrDate = fd.value ? C.fmtDay(dateMs(fd.value)).toUpperCase() : ''; limit = 200; paintList(); };
         paintList();
       }
       function paintList() {

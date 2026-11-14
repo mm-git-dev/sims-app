@@ -44,10 +44,19 @@
     perm: 'docketGrn',
     render: function (view, r) {
       view.innerHTML = '<div class="card"><label class="f" style="margin-top:0">Docket number</label><div class="row"><input type="text" id="dlr" class="grow" inputmode="numeric" placeholder="Enter or scan the docket number" autocomplete="off">' +
-        '<button class="btn hide" id="dScan">Scan</button><button class="btn pri" id="dGo">Go</button></div></div><div id="dstep"></div><h3>Open dockets</h3><div class="card" id="dopen"><span class="spinner"></span></div>';
-      var inp = $('#dlr'), step = $('#dstep'), podDoc = null;
-      function go() { var v = inp.value.replace(/\s+/g, ''); if (v) lookup(v); }
-      $('#dGo').onclick = go; inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+        '<button class="btn hide" id="dScan">Scan</button><button class="btn pri" id="dGo">Go</button></div><div id="dsug"></div></div><div id="dstep"></div><h3>Open dockets</h3><div class="card" id="dopen"><span class="spinner"></span></div>';
+      var inp = $('#dlr'), step = $('#dstep'), podDoc = null, sug = $('#dsug');
+      inp.setAttribute('enterkeyhint', 'go');
+      function go() { var v = inp.value.replace(/\s+/g, ''); sug.innerHTML = ''; if (v) lookup(v); }
+      function suggest() {
+        var q = inp.value.replace(/\s+/g, ''), s = App.docketSuggestions ? App.docketSuggestions(q) : { dockets: [], invoices: [] };
+        if (!s.dockets.length && !s.invoices.length) { sug.innerHTML = ''; return; }
+        sug.innerHTML = '<div class="list" style="margin-top:8px">' + s.dockets.map(function (d) { return '<div class="item click" data-sl="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div><span class="chip">' + esc(d.status) + '</span></div>'; }).join('') +
+          s.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-sl="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + '</div></div></div>'; }).join('') + '</div>';
+        $$('[data-sl]', sug).forEach(function (el) { el.onclick = function () { sug.innerHTML = ''; lookup(el.dataset.sl); }; });
+      }
+      inp.addEventListener('input', suggest);
+      $('#dGo').onclick = go; inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { go(); inp.blur(); } });
       var sb = $('#dScan'); if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.matchMedia('(pointer:coarse)').matches) sb.classList.remove('hide');
       sb.onclick = function () { App.scan({ mode: 'route', title: 'Scan Docket', onText: function (t) { var k = C.classifyScan(t, {}); var v = k.value; inp.value = v; App.feedback(true); lookup(v); return true; } }); };
 
