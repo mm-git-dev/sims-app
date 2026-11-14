@@ -419,7 +419,7 @@
   }
   App.docketSuggestions = function (q) { return docketSuggestions(q, true); };
   function openSearch() {
-    var o = overlay('Search SIMS', '<input type="search" id="sq" placeholder="Part number, LR, invoice or case number" autocomplete="off" autocapitalize="characters"><div id="sres" style="margin-top:12px"></div>');
+    var o = overlay('Search SIMS', '<input type="search" id="sq" placeholder="Part, LR, invoice or case no." autocomplete="off" autocapitalize="characters"><div id="sres" style="margin-top:12px"></div>');
     var inp = $('#sq', o.el), res = $('#sres', o.el);
     function showRecent() {
       var r = recent();
@@ -549,7 +549,7 @@
     render: function (view) {
       var u = App.me.user, h = new Date().getHours(), g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
       view.innerHTML = '<h2>' + esc(g + ', ' + App.who()) + '</h2>' + (u.adminLocked ? '<div class="card warn"><b>Admin is locked.</b> Until you approve the link sent to the admin email, this login can only scan parts. <a href="#/admin">Unlock Admin</a></div>' : '') + '<button class="btn pri big hide" id="hScan">' + ICON.scan.replace('<svg', '<svg style="width:22px;height:22px;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:2;margin-right:8px"') + 'Scan</button>' +
-        '<div style="margin:14px 0"><input type="search" id="hSearch" placeholder="Search SIMS — part number, LR, invoice or case number" readonly></div>' +
+        '<div style="margin:14px 0"><input type="search" id="hSearch" placeholder="Search part, LR, invoice, case" readonly></div>' +
         '<div class="card" id="hFresh"></div><div id="hStat"></div>';
       var sb = $('#hScan'); if (camOK && (window.matchMedia('(max-width:800px)').matches || window.matchMedia('(pointer:coarse)').matches)) sb.classList.remove('hide');
       sb.onclick = function () { App.scan({ mode: 'route' }); };

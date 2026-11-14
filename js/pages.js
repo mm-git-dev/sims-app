@@ -43,7 +43,7 @@
   App.pages['docket-grn'] = {
     perm: 'docketGrn',
     render: function (view, r) {
-      view.innerHTML = '<div class="card"><label class="f" style="margin-top:0">Docket number</label><div class="row"><input type="text" id="dlr" class="grow" inputmode="numeric" placeholder="Enter or scan the docket number" autocomplete="off">' +
+      view.innerHTML = '<div class="card"><label class="f" style="margin-top:0">Docket number</label><div class="row"><input type="text" id="dlr" class="grow" inputmode="numeric" placeholder="Docket number" autocomplete="off">' +
         '<button class="btn hide" id="dScan">Scan</button><button class="btn pri" id="dGo">Go</button></div><div id="dsug"></div></div><div id="dstep"></div><h3>Open dockets</h3><div class="card" id="dopen"><span class="spinner"></span></div>';
       var inp = $('#dlr'), step = $('#dstep'), podDoc = null, sug = $('#dsug');
       inp.setAttribute('enterkeyhint', 'go');

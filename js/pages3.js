@@ -170,9 +170,9 @@
         var phone = window.matchMedia('(max-width:800px)').matches;
         var cols = [['part', 'Part'], ['desc', 'Description'], ['invoice', 'Invoice'], ['lr', 'LR'], ['mark', 'Mark / PO']];
         if (!phone) { cols.splice(2, 0, ['qty', 'Qty']); cols.splice(5, 0, ['lrDate', 'LR date']); } else { delete F.qty; delete F.lrDate; }
-        host.innerHTML = '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">' + cols.map(function (c) {
-          return c[0] === 'lrDate' ? '<div style="flex:1 1 150px;min-width:140px"><input type="date" data-fd="1" title="LR date" value="' + esc(F.lrDateRaw || '') + '"></div>'
-            : '<input type="search" enterkeyhint="search" data-f="' + c[0] + '" placeholder="Filter ' + esc(c[1]) + '" value="' + esc(F[c[0]] || '') + '" style="flex:1 1 130px;min-width:110px">';
+        host.innerHTML = '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:flex-end">' + cols.map(function (c) {
+          return c[0] === 'lrDate' ? '<div style="flex:1 1 150px;min-width:140px"><label class="f" style="margin:0 0 2px;font-size:12px">LR date</label><input type="date" data-fd="1" title="LR date" value="' + esc(F.lrDateRaw || '') + '"></div>'
+            : '<input type="search" enterkeyhint="search" data-f="' + c[0] + '" placeholder="' + esc(c[1]) + '" aria-label="Filter ' + esc(c[1]) + '" value="' + esc(F[c[0]] || '') + '" style="flex:1 1 130px;min-width:110px">';
         }).join('') + '</div><div id="tlRes"></div>';
         $$('[data-f]', host).forEach(function (i) {
           i.oninput = function () { F[i.dataset.f] = i.value.trim().toUpperCase(); limit = 200; paintList(); };
