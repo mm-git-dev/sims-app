@@ -447,22 +447,9 @@
         api('search', { q: q }).then(function (d) {
           kinds = kinds.concat(d.results);
           if (!kinds.length) { res.innerHTML = '<div class="card">Nothing found for “' + esc(q) + '”.</div>'; App.feedback(false); return; }
-          var canArch = App.can('docketHistory') && /^[0-9]{4,}$/.test(q.replace(/\s+/g, ''));
-          if (kinds.length === 1 && !(canArch && kinds[0].kind === 'case')) { open(kinds[0]); return; }
-          function list() {
-            res.innerHTML = '<h3>' + (kinds.length > 1 ? 'More than one match' : 'Match') + '</h3><div class="list">' + kinds.map(function (k, i) { return '<div class="item click" data-k="' + i + '">' + esc(k.label) + '</div>'; }).join('') + '</div>' + (canArch ? '<div style="margin-top:12px"><button class="btn" id="sArch">Also search the archive</button><div class="small muted" id="sArchMsg" style="margin-top:6px"></div></div>' : '');
-            $$('[data-k]', res).forEach(function (d) { d.onclick = function () { open(kinds[+d.dataset.k]); }; });
-            var ab = $('#sArch', res); if (ab) ab.onclick = function () {
-              ab.disabled = true; ab.textContent = 'Searching the archive…';
-              api('search', { q: q, archive: true }).then(function (a) {
-                var have = {}; kinds.forEach(function (k) { if (k.lr) have[k.lr] = 1; });
-                var add = a.results.filter(function (k) { return !have[k.lr]; });
-                if (!add.length) { ab.textContent = 'Also search the archive'; ab.disabled = false; $('#sArchMsg', res).textContent = 'Nothing more in the archive.'; return; }
-                kinds = kinds.concat(add); canArch = false; list();
-              }).catch(function (e) { ab.disabled = false; ab.textContent = 'Also search the archive'; $('#sArchMsg', res).textContent = e.message; });
-            };
-          }
-          list();
+          if (kinds.length === 1) { open(kinds[0]); return; }
+          res.innerHTML = '<h3>More than one match</h3><div class="list">' + kinds.map(function (k, i) { return '<div class="item click" data-k="' + i + '">' + esc(k.label) + '</div>'; }).join('') + '</div>';
+          $$('[data-k]', res).forEach(function (d) { d.onclick = function () { open(kinds[+d.dataset.k]); }; });
         }).catch(function (e) { res.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       } else if (kinds.length) open(kinds[0]);
       else { res.innerHTML = '<div class="card">Part number not found.</div>'; App.feedback(false); }
