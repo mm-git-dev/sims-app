@@ -197,6 +197,7 @@
     if (App.can('pendingItems')) jobs.push(['pendingItems', {}, 'pendingItems']);
     if (App.can('pendingClaims')) jobs.push(['pendingClaims', { all: false }, 'pendingClaims:open']);
     if (App.can('missedClaims')) jobs.push(['missedList', { all: false }, 'missedList:open']);
+    if (App.can('partWatch')) jobs.push(['watchList', {}, 'watchList']);
     jobs.push(['homeStatus', {}, 'homeStatus']);
     if (App.me.user.admin) { jobs.push(['adminUsers', {}, 'adminUsers']); jobs.push(['adminDevices', {}, 'adminDevices']); jobs.push(['adminSettings', {}, 'adminSettings']); jobs.push(['adminFiles', {}, 'adminFiles']); jobs.push([null, null, 'adminFeeds']); }
     var p = Promise.resolve();
