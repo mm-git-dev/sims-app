@@ -267,8 +267,7 @@
     btn.disabled = true; btn.textContent = 'Sending…';
     api('requestAdmin', { device: App.deviceInfo().type }).then(function (r) {
       btn.textContent = 'Request sent';
-      if (r.via !== 'telegram') { msgEl.textContent = 'A link was sent to your email. Open it on this device.'; return; }
-      msgEl.innerHTML = 'Sent to your Telegram. Tap <b>Unlock this device</b> there; this page opens by itself.';
+      msgEl.innerHTML = r.via === 'telegram' ? 'Sent to your Telegram. Tap <b>Unlock this device</b> there; this page opens by itself.' : 'Sent to your email. Open the link on any device and tap <b>Unlock</b>; this page opens by itself.';
       var tries = 0; clearTimeout(unlockTimer);
       (function poll() {
         unlockTimer = setTimeout(function () {
@@ -308,8 +307,8 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Settings', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
-  var PUBLIC = { approve: 1 };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Settings', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', unlock: 'Admin Unlock', 'admin-open': 'Admin Access' };
+  var PUBLIC = { approve: 1, unlock: 1 };
 
   function route() {
     App.routeSeq = (App.routeSeq || 0) + 1; App.liveFn = null;

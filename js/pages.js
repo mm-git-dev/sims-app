@@ -352,6 +352,18 @@
       }).catch(function (e) { $('#ap').innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
     }
   };
+  App.pages.unlock = {
+    render: function (view, r) {
+      view.innerHTML = '<div class="brand" style="padding-left:0">SIMS</div><h2>Admin unlock request</h2><div id="ul"><span class="spinner"></span></div>';
+      var args = { s: r.q.s, e: r.q.e, sig: r.q.sig };
+      api('unlockInfo', args, { quiet: true }).then(function (d) {
+        if (d.unlocked) { $('#ul').innerHTML = '<div class="card">This device is already unlocked.</div>'; return; }
+        $('#ul').innerHTML = '<div class="card"><div class="bold" style="font-size:20px">🔑 Unlock Admin on this device?</div><div class="muted">' + esc(d.name) + ' · ' + esc(d.device) + (d.label ? ' · ' + esc(d.label) : '') + '</div><div class="small muted" style="margin-top:6px">It unlocks the device that asked, not the one you are reading this on.</div><div class="row" style="margin-top:14px"><button class="btn pri" id="ulY">Unlock</button><button class="btn bad" id="ulN">Do not unlock</button></div></div>';
+        function decide(x) { api('unlockDecide', { s: args.s, e: args.e, sig: args.sig, decision: x }, { quiet: true }).then(function (res) { $('#ul').innerHTML = '<div class="card ok">' + (res.status === 'unlocked' ? 'Unlocked. The device opens by itself.' : 'Not unlocked.') + '</div>'; }).catch(function (e) { toast(e.message); }); }
+        $('#ulY').onclick = function () { decide('approve'); }; $('#ulN').onclick = function () { decide('refuse'); };
+      }).catch(function (e) { $('#ul').innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+    }
+  };
   App.pages['admin-open'] = {
     render: function (view, r) {
       return api('openAdmin', { t: r.q.t }).then(function () { toast('Admin unlocked.'); App.me.adminUnlocked = true; location.hash = '#/admin'; location.reload(); }).catch(function (e) { view.innerHTML = '<div class="card bad"><h2>Admin link</h2><p class="err">' + esc(e.message) + '</p><button class="btn pri" onclick="location.hash=\'#/admin\'">Back to Admin</button></div>'; });
