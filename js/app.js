@@ -316,9 +316,8 @@
   function refreshMenu() {
     var th = document.documentElement.dataset.theme;
     $('#menu').innerHTML = menuItems().map(function (i) { return '<a class="nav" data-r="' + i.k + '" href="' + i.h + '">' + esc(i.t) + '</a>'; }).join('') +
-      '<div class="sep"></div><button class="nav" id="themeBtn">Theme: ' + (th === 'light' ? 'Light' : 'Pitch Black') + '</button><button class="nav" id="logoutBtn">Log out</button>';
+      '<div class="sep"></div><button class="nav" id="themeBtn">Theme: ' + (th === 'light' ? 'Light' : 'Pitch Black') + '</button>';
     $('#themeBtn').onclick = function () { setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true); refreshMenu(); };
-    $('#logoutBtn').onclick = function () { api('logout', {}, { quiet: true }).catch(function () {}).then(function () { endSession(''); }); };
     $('#who').textContent = App.who();
     $$('#side a.nav').forEach(function (a) { a.classList.toggle('on', a.dataset.r === menuKey(App.page)); });
     $$('#side a.nav').forEach(function (a) { a.addEventListener('click', function () { $('#side').classList.remove('open'); $('#scrim').classList.add('hide'); }); });
@@ -329,9 +328,10 @@
     if (save && App.token) api('setTheme', { theme: t }, { quiet: true }).catch(function () {});
   }
   function labelModal() {
-    modal('<h2 style="margin-top:0">Device label</h2><p class="muted small">Shown next to your name, e.g. Office PC.</p><input type="text" id="lbl" maxlength="30" value="' + esc(App.me.user.label) + '"><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-n>Cancel</button><button class="btn pri" data-y>Save</button></div>', function (m, close) {
+    var u = App.me.user, di = deviceInfo();
+    modal('<h2 style="margin-top:0">' + esc(u.name) + '</h2><p class="muted small">' + (u.label ? 'Device: ' + esc(u.label) + '<br>' : '') + esc(di.type + ' · ' + di.browser) + '<br>Only the Admin can name or rename a device.</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-n>Close</button><button class="btn bad" data-y>Log out</button></div>', function (m, close) {
       $('[data-n]', m).onclick = close;
-      $('[data-y]', m).onclick = function () { api('setLabel', { label: $('#lbl', m).value }).then(function (r) { App.me.user.label = r.label; $('#who').textContent = App.who(); close(); route(); }).catch(function (e) { toast(e.message); }); };
+      $('[data-y]', m).onclick = function () { close(); api('logout', {}, { quiet: true }).catch(function () {}).then(function () { endSession(''); }); };
     });
   }
 
