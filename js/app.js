@@ -218,7 +218,9 @@
     jobs.push(['homeStatus', {}, 'homeStatus']);
     if (App.me.user.admin) { jobs.push(['adminUsers', {}, 'adminUsers']); jobs.push(['adminDevices', {}, 'adminDevices']); jobs.push(['adminSettings', {}, 'adminSettings']); jobs.push(['adminFiles', {}, 'adminFiles']); jobs.push([null, null, 'adminFeeds']); }
     var p = Promise.resolve();
-    jobs.forEach(function (j) { p = p.then(function () { var call = j[0] ? api(j[0], j[1], { quiet: true }) : Promise.all([api('adminFeedStatus', {}, { quiet: true }), api('adminFeedIssues', {}, { quiet: true })]); return call.then(function (d) { ls(cacheKey(j[2]), JSON.stringify({ d: d, t: Date.now() })); }).catch(function () {}); }); });
+    var lanes = [Promise.resolve(), Promise.resolve(), Promise.resolve()]; // three at a time, so everything is ready in a few seconds
+    jobs.forEach(function (j, i) { lanes[i % 3] = lanes[i % 3].then(function () { var call = j[0] ? api(j[0], j[1], { quiet: true }) : Promise.all([api('adminFeedStatus', {}, { quiet: true }), api('adminFeedIssues', {}, { quiet: true })]); return call.then(function (d) { ls(cacheKey(j[2]), JSON.stringify({ d: d, t: Date.now() })); }).catch(function () {}); }); });
+    p = Promise.all(lanes);
     // the first few open dockets, so tapping one opens at once
     p.then(function () { try { var c = JSON.parse(ls(cacheKey('openDockets')) || 'null'); return c ? c.d.dockets.slice(0, 5) : []; } catch (e) { return []; } }).then(function (list) {
       var q = Promise.resolve();
