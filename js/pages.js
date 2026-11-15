@@ -365,17 +365,12 @@
   App.pages.admin = {
     render: function (view, r) {
       if (!App.me.user.admin) { view.innerHTML = '<div class="card">Admin only.</div>'; return; }
+      if (App.me.user.adminLocked) { App.lockCard(view); return; }
       var tab = r.arg || 'users';
       view.innerHTML = tabs() + '<div id="atab"></div>';
       $$('[data-t]', view).forEach(function (b) { b.onclick = function () { App.go('#/admin/' + b.dataset.t); }; });
       var t = $('#atab');
-      function lockUi() {
-        view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>Tap the button and SIMS will send a one-time link (valid for 10 minutes) to the admin email. Open that link on this device.</p><button class="btn pri" id="reqA">Send me the admin link</button><div id="reqMsg" class="muted" style="margin-top:10px"></div></div>';
-        $('#reqA').onclick = function () {
-          busy($('#reqA'), true, 'Sending…');
-          api('requestAdmin', { device: App.deviceInfo().type }).then(function () { $('#reqMsg').innerHTML = 'Link sent to the admin email. After you open it, you will come back here.'; busy($('#reqA'), false); }).catch(function (e2) { $('#reqMsg').innerHTML = '<span class="err">' + esc(e2.message) + '</span>'; busy($('#reqA'), false); });
-        };
-      }
+      function lockUi() { App.lockCard(view); }
       function fail(e, had) { if (e.code === 'adminlock') { lockUi(); return; } if (!had) t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; }
       function tabSwr(key, fetchFn, paint, fresh) { return App.swr(key, fetchFn, function (d) { App.keepState(t, function () { paint(d); }); }, { fresh: fresh, onError: fail, silent: true }); }
       function anyPanelOpen() { return $$('[id^="pm-"]', t).some(function (b) { return b.innerHTML; }); }

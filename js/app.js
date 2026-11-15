@@ -257,11 +257,29 @@
   // ---------- permissions ----------
   /** Shown instead of "no permission" while an Admin session is still locked. */
   App.lockCard = function (view) {
-    view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>Tap the button and SIMS will send a one-time link (valid for 10 minutes) to the admin email. Open that link on this device and everything unlocks. Until then only scanning works.</p><button class="btn pri" id="lkReq">Send me the admin link</button><div id="lkMsg" class="muted" style="margin-top:10px"></div></div>';
-    $('#lkReq', view).onclick = function () {
-      var b = this; b.disabled = true; b.textContent = 'Sending…';
-      api('requestAdmin', { device: App.deviceInfo().type }).then(function () { b.textContent = 'Link sent'; $('#lkMsg', view).textContent = 'Link sent to the admin email. Open it on this device; you will come back to the app unlocked.'; }).catch(function (e) { b.disabled = false; b.textContent = 'Send me the admin link'; $('#lkMsg', view).innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
-    };
+    var tg = !App.me || App.me.adminVia !== 'email';
+    view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>This login can only scan parts until you unlock it. Tap the button and SIMS sends a request to your ' + (tg ? 'Telegram' : 'email') + '.</p><button class="btn pri" id="lkReq">Unlock Admin</button><div id="lkMsg" class="muted" style="margin-top:10px"></div></div>';
+    $('#lkReq', view).onclick = function () { App.unlockAdmin($('#lkMsg', view), this); };
+  };
+  var unlockTimer = null;
+  /** One tap: sends the unlock request, then waits (checking every 3 s) until the Admin taps Unlock in Telegram. */
+  App.unlockAdmin = function (msgEl, btn) {
+    btn.disabled = true; btn.textContent = 'Sending…';
+    api('requestAdmin', { device: App.deviceInfo().type }).then(function (r) {
+      btn.textContent = 'Request sent';
+      if (r.via !== 'telegram') { msgEl.textContent = 'A link was sent to your email. Open it on this device.'; return; }
+      msgEl.innerHTML = 'Sent to your Telegram. Tap <b>Unlock this device</b> there; this page opens by itself.';
+      var tries = 0; clearTimeout(unlockTimer);
+      (function poll() {
+        unlockTimer = setTimeout(function () {
+          if (++tries > 200) { btn.disabled = false; btn.textContent = 'Unlock Admin'; msgEl.textContent = 'No answer yet. Tap Unlock Admin to send it again.'; return; }
+          api('adminUnlockStatus', {}, { quiet: true }).then(function (s) {
+            if (!s.unlocked) return poll();
+            return api('me').then(function (me) { applyMe(me); clearCaches(); refreshMenu(); toast('Admin unlocked.'); route(); App.prefetch(); });
+          }).catch(function () { poll(); });
+        }, 3000);
+      })();
+    }).catch(function (e) { btn.disabled = false; btn.textContent = 'Unlock Admin'; msgEl.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
   };
   App.can = function (p) { return !!App.me && C.can(App.me.user, p); };
   App.open = function () { return !!App.me && (App.me.open || App.me.user.admin); };
@@ -606,9 +624,10 @@
   App.pages.home = {
     render: function (view) {
       var u = App.me.user, h = new Date().getHours(), g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-      view.innerHTML = '<h2>' + esc(g + ', ' + App.who()) + '</h2>' + (u.adminLocked ? '<div class="card warn"><b>Admin is locked.</b> Until you approve the link sent to the admin email, this login can only scan parts. <a href="#/admin">Unlock Admin</a></div>' : '') + '<button class="btn pri big hide" id="hScan">' + ICON.scan.replace('<svg', '<svg style="width:22px;height:22px;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:2;margin-right:8px"') + 'Scan</button>' +
+      view.innerHTML = '<h2>' + esc(g + ', ' + App.who()) + '</h2>' + (u.adminLocked ? '<div class="card warn"><b>Admin is locked.</b> This login can only scan parts until you unlock it.<div style="margin-top:10px"><button class="btn pri" id="hUnlock">Unlock Admin</button></div><div id="hUnlockMsg" class="small muted" style="margin-top:8px"></div></div>' : '') + '<button class="btn pri big hide" id="hScan">' + ICON.scan.replace('<svg', '<svg style="width:22px;height:22px;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:2;margin-right:8px"') + 'Scan</button>' +
         '<div style="margin:14px 0"><input type="search" id="hSearch" placeholder="Search part, LR, invoice, case" readonly></div>' +
         '<div class="card" id="hFresh"></div><div id="hStat"></div>';
+      var hu = $('#hUnlock'); if (hu) hu.onclick = function () { App.unlockAdmin($('#hUnlockMsg'), hu); };
       var sb = $('#hScan'); if (camOK && (window.matchMedia('(max-width:800px)').matches || window.matchMedia('(pointer:coarse)').matches)) sb.classList.remove('hide');
       sb.onclick = function () { App.scan({ mode: 'route' }); };
       $('#hSearch').onclick = openSearch; $('#hSearch').onfocus = openSearch;
