@@ -93,7 +93,7 @@
         }).join('');
         t.innerHTML = h;
         $('#tgSave') && ($('#tgSave').onclick = function () { var b = this; busy(b, true, 'Checking…'); api('adminTgToken', { token: $('#tgTok').value }).then(function (r) { toast('Connected to @' + r.bot + (r.webhook ? '.' : ' (webhook not set).')); load(); }).catch(function (e) { busy(b, false); $('#tgMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); });
-        var tc = $('#tgCode'); if (tc) tc.onclick = function () { api('adminTgCode').then(function (r) { $('#tgMsg').innerHTML = 'Open Telegram, find <b>@' + esc(r.bot) + '</b>, and send it this message within ' + r.minutes + ' minutes:<br><span class="mono bold">/start ' + esc(r.code) + '</span>'; }).catch(function (e) { toast(e.message); }); };
+        var tc = $('#tgCode'); if (tc) tc.onclick = function () { api('adminTgCode').then(function (r) { $('#tgMsg').innerHTML = 'Open Telegram, find <b>@' + esc(r.bot) + '</b>: <a href="https://t.me/' + esc(r.bot) + '?start=' + esc(r.code) + '" target="_blank" rel="noopener"><b>tap here to open it</b></a>, then press <b>Start</b> (valid ' + r.minutes + ' minutes).<br>If the link does not work, send this message to the bot: <span class="mono bold">/start ' + esc(r.code) + '</span>'; }).catch(function (e) { toast(e.message); }); };
         var tt = $('#tgTest'); if (tt) tt.onclick = function () { api('adminTgTest').then(function () { toast('Test message sent.'); }).catch(function (e) { toast(e.message); }); };
         $$('[data-ga]', t).forEach(function (b) {
           b.onclick = function () {
