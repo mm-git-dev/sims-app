@@ -176,7 +176,7 @@
       opts: {fresh: skip the saved copy; onError(e): called if the refresh fails (even when a saved copy is on screen); silent: do not show errors} */
   // Small status next to the page title while a saved copy is on screen: "Refreshing…", then "Updated" (if something changed) or nothing.
   var sync = { n: 0, t: null, hide: null };
-  function syncShow(kind, text) { var el = $('#sync'); if (!el) return; clearTimeout(sync.hide); el.className = 'on ' + kind; el.innerHTML = (kind === 'run' ? '<span class="sp"></span>' : kind === 'ok' ? '✓' : '⚠') + '<span class="t">' + text + '</span>'; }
+  function syncShow(kind, text) { var el = $('#sync'); if (!el) return; clearTimeout(sync.hide); el.className = 'on ' + kind; el.title = text; el.setAttribute('aria-label', text); el.innerHTML = kind === 'run' ? '<span class="sp"></span>' : kind === 'ok' ? '✓' : '⚠'; }
   function syncHide() { var el = $('#sync'); if (el) el.className = ''; }
   function syncStart() { sync.n++; clearTimeout(sync.t); clearTimeout(sync.hide); sync.t = setTimeout(function () { if (sync.n > 0) syncShow('run', 'Refreshing…'); }, 250); }
   function syncEnd(res) {
