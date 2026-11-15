@@ -26,11 +26,35 @@
     setTimeout(function () { t.remove(); }, ms || 2600);
   }
   App.toast = toast;
+  // ---------- Back button / back swipe closes what is open on top (scanner, search, pop-ups, side menu) instead of leaving the page ----------
+  var layers = [], layerSeq = 0, skipPop = 0;
+  function openLayer(closeFn) {
+    var L = { id: ++layerSeq, close: closeFn };
+    layers.push(L);
+    try { history.pushState({ simsLayer: L.id }, ''); } catch (e) { /* ignore */ }
+    return L;
+  }
+  function layerDone(L) {                       // closed from the screen (X, Cancel, a scan result ...): take our history step away again
+    var i = layers.indexOf(L); if (i < 0) return;
+    layers.splice(i, 1);
+    setTimeout(function () { if (history.state && history.state.simsLayer === L.id) { skipPop++; history.back(); } }, 30);
+  }
+  window.addEventListener('popstate', function () {
+    if (skipPop > 0) { skipPop--; return; }
+    var L = layers.pop(); if (L) { L.close(); return; }
+    var st = history.state;                      // landed on a step left behind by a layer that was closed another way: step over it
+    if (st && st.simsLayer) { skipPop++; history.back(); }
+  });
+  var drawerL = null;
+  function hideDrawer() { var s = $('#side'), sc = $('#scrim'); if (s) s.classList.remove('open'); if (sc) sc.classList.add('hide'); }
+  function openDrawer() { $('#side').classList.add('open'); $('#scrim').classList.remove('hide'); if (!drawerL) drawerL = openLayer(function () { drawerL = null; hideDrawer(); }); }
+  function closeDrawer() { hideDrawer(); if (drawerL) { var L = drawerL; drawerL = null; layerDone(L); } }
   function modal(html, onMount) {
     var m = document.createElement('div'); m.className = 'modal'; m.innerHTML = '<div class="box">' + html + '</div>';
     document.body.appendChild(m);
+    var L = openLayer(function () { close(); });
     m.addEventListener('click', function (e) { if (e.target === m) close(); });
-    function close() { m.remove(); }
+    function close() { if (!m.parentNode) return; m.remove(); layerDone(L); }
     if (onMount) onMount(m, close);
     return { el: m, close: close };
   }
@@ -280,7 +304,7 @@
     $('#pageTitle').textContent = TITLES[App.page] || 'SIMS';
     $$('#side a.nav').forEach(function (a) { a.classList.toggle('on', a.dataset.r === menuKey(App.page)); });
     var view = $('#page'); view.scrollTop = 0; view.innerHTML = '<div class="center muted" style="padding:40px"><span class="spinner"></span></div>';
-    $('#side').classList.remove('open'); var sc = $('#scrim'); if (sc) sc.classList.add('hide');
+    closeDrawer();
     var gate = pg.perm && !App.canNow(pg.perm) ? pg.perm : null;
     if (App.me.user.adminLocked && App.page !== 'admin' && App.page !== 'admin-open' && App.page !== 'home' && App.page !== 'part') { App.lockCard(view); return; }
     if (!App.open() && App.page !== 'home' && App.page !== 'part') { view.innerHTML = closedHtml(); return; }
@@ -334,10 +358,10 @@
       '<button class="ib" id="searchBtn" aria-label="Search">' + ICON.search + '</button><button class="ib hide" id="scanBtn" aria-label="Scan">' + ICON.scan + '</button></header><main id="page"></main></div></div>';
     $('#menuBtn').onclick = function () {
       var s = $('#side');
-      if (window.matchMedia('(max-width:800px)').matches) { s.classList.add('open'); $('#scrim').classList.remove('hide'); } else s.classList.toggle('collapsed');
+      if (window.matchMedia('(max-width:800px)').matches) openDrawer(); else s.classList.toggle('collapsed');
     };
     $('#menuBtn').classList.remove('mobileOnly');
-    $('#scrim').onclick = function () { $('#side').classList.remove('open'); $('#scrim').classList.add('hide'); };
+    $('#scrim').onclick = closeDrawer;
     $('#searchBtn').onclick = function () { openSearch(); };
     $('#scanBtn').onclick = function () { App.scan({ mode: 'route' }); };
     $('#who').onclick = labelModal;
@@ -350,7 +374,7 @@
     $('#themeBtn').onclick = function () { setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true); refreshMenu(); };
     $('#who').textContent = App.who();
     $$('#side a.nav').forEach(function (a) { a.classList.toggle('on', a.dataset.r === menuKey(App.page)); });
-    $$('#side a.nav').forEach(function (a) { a.addEventListener('click', function () { $('#side').classList.remove('open'); $('#scrim').classList.add('hide'); }); });
+    $$('#side a.nav').forEach(function (a) { a.addEventListener('click', closeDrawer); });
   }
   function setTheme(t, save) {
     document.documentElement.dataset.theme = t; ls('sims.theme', t);
@@ -420,9 +444,12 @@
     var o = document.createElement('div'); o.className = 'overlay';
     o.innerHTML = '<div class="oh"><button class="ib" data-x aria-label="Close">' + ICON.back + '</button><h2>' + esc(title) + '</h2></div><div class="ob">' + bodyHtml + '</div>';
     document.body.appendChild(o);
-    function close() { o.remove(); onClose && onClose(); }
-    $('[data-x]', o).onclick = close;
-    return { el: o, close: close, body: $('.ob', o) };
+    var h = { el: o, body: $('.ob', o) };
+    var L = openLayer(function () { h.close(); });   // back button runs the (possibly wrapped) close, e.g. the scanner also stops the camera
+    function close() { if (!o.parentNode) return; o.remove(); onClose && onClose(); layerDone(L); }
+    h.close = close;
+    $('[data-x]', o).onclick = function () { h.close(); };
+    return h;
   }
   App.overlay = overlay;
 
