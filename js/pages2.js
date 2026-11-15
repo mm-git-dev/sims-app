@@ -109,7 +109,7 @@
           upload(x.lr, type, doc, '', { deliveryId: x.deliveryId || '' }).then(function (r) { toast(r.status === 'queued' ? 'Saved temporarily; it will move automatically.' : 'Saved.'); load(true); }).catch(function (e) { toast(e.message, 5000); });
         });
       }
-      function load(fresh) { return App.swr('pendingItems', function () { return api('pendingItems'); }, function (d) { items = d.items; draw(); }, { fresh: fresh }).catch(function (e) { $('#pList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); }
+      function load(fresh) { return App.swr('pendingItems', function () { return api('pendingItems'); }, function (d) { App.keepState(view, function () { items = d.items; draw(); }); }, { fresh: fresh }).catch(function (e) { $('#pList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); }
       function reload() { return load(true); }
       $('#pQ').oninput = function () { q = this.value.replace(/\s+/g, ''); draw(); };
       App.live(function () { load(false); });

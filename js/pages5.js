@@ -77,7 +77,7 @@
     // ---------- Alerts and Telegram ----------
     alerts: function (t) {
       t.innerHTML = '<span class="spinner"></span>';
-      function load() { return api('adminTelegram').then(paint).catch(function (e) { errBox(t, e); }); }
+      function load() { return App.swr('adminTelegram', function () { return api('adminTelegram'); }, function (d) { App.keepState(t, function () { paint(d); }); }, { silent: true, onError: function (e, have) { if (!have) errBox(t, e); } }); }
       function paint(d) {
         var connectedGroups = d.groups.filter(function (g) { return g.status === 'connected'; }), waiting = d.groups.filter(function (g) { return g.status === 'waiting'; });
         var h = '<div class="card"><div class="bold">Telegram</div>';
@@ -151,7 +151,7 @@
           };
         });
       }
-      return api('adminBackups').then(function (d) { paint(d); }).catch(function (e) { errBox(t, e); });
+      return App.swr('adminBackups', function () { return api('adminBackups'); }, function (d) { App.keepState(t, function () { paint(d); }); }, { silent: true, onError: function (e, have) { if (!have) errBox(t, e); } });
     }
   };
 })();

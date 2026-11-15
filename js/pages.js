@@ -133,14 +133,15 @@
       var openSeq = 0;
       function loadOpen(fresh) {
         var my = ++openSeq;
-        App.swr('openDockets', function () { return api('openDockets'); }, function (d) {
+        App.swr('openDockets', function () { return api('openDockets'); }, function (d) { var e0 = $('#dopen'); if (e0) App.keepState(e0, function () { drawOpen(d); }); }, { fresh: fresh }).catch(function (e) { var el = $('#dopen'); if (el) el.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+        function drawOpen(d) {
           var el = $('#dopen'); if (!el || my !== openSeq) return;
           if (!d.dockets.length) { el.innerHTML = '<span class="muted">No open dockets.</span>'; return; }
           el.innerHTML = '<div class="list">' + d.dockets.map(function (x) {
             return '<div class="item click" data-lr="' + esc(x.lr) + '"><div class="grow"><div class="bold mono">' + esc(x.lr) + '</div><div class="small muted">' + esc(stamp(x.arrivedAt)) + ' · ' + x.done + ' of ' + x.total + ' lines GRN\'d</div><div style="margin-top:4px">' + flagChips(x.flags) + '</div></div>' + chipFor(x.status) + '</div>';
           }).join('') + '</div>';
           $$('[data-lr]', el).forEach(function (d) { d.onclick = function () { App.go('#/docket/' + encodeURIComponent(d.dataset.lr)); }; });
-        }, { fresh: fresh }).catch(function (e) { var el = $('#dopen'); if (el) el.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+        }
       }
       loadOpen();
       App.live(function () { loadOpen(false); });
@@ -393,10 +394,11 @@
       // Users and their logged-in devices in one place: names A to Z, Admin last.
       function usersTab(t, fresh) {
         if (!t.firstChild) t.innerHTML = '<span class="spinner"></span>';
-        var U = null, D = null;
+        // The two lists arrive separately. Keep the last copy of each so a refresh never redraws a shorter page (that would push the scroll position up).
+        var U = t.__U || null, D = t.__D || null;
         function draw() { if (!U || anyPanelOpen()) return; paintUsers(t, U, D || { devices: [] }); }
-        tabSwr('adminUsers', function () { return api('adminUsers', {}, { quiet: true }); }, function (u) { U = u; draw(); }, fresh);
-        tabSwr('adminDevices', function () { return api('adminDevices', {}, { quiet: true }); }, function (d) { D = d; draw(); }, fresh);
+        tabSwr('adminUsers', function () { return api('adminUsers', {}, { quiet: true }); }, function (u) { U = t.__U = u; draw(); }, fresh);
+        tabSwr('adminDevices', function () { return api('adminDevices', {}, { quiet: true }); }, function (d) { D = t.__D = d; draw(); }, fresh);
       }
       function paintUsers(t, u, dv) {
         var h = '';

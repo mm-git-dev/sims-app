@@ -241,7 +241,7 @@
     if (App.can('partyOrders')) jobs.push(['orders', {}, 'orders']);
     if (App.can('uploadPacking')) jobs.push(['packStatus', {}, 'packStatus']);
     jobs.push(['homeStatus', {}, 'homeStatus']);
-    if (App.me.user.admin) { jobs.push(['adminUsers', {}, 'adminUsers']); jobs.push(['adminDevices', {}, 'adminDevices']); jobs.push(['adminSettings', {}, 'adminSettings']); jobs.push(['adminFiles', {}, 'adminFiles']); jobs.push([null, null, 'adminFeeds']); }
+    if (App.me.user.admin) { jobs.push(['adminUsers', {}, 'adminUsers']); jobs.push(['adminDevices', {}, 'adminDevices']); jobs.push(['adminSettings', {}, 'adminSettings']); jobs.push(['adminFiles', {}, 'adminFiles']); jobs.push(['adminTelegram', {}, 'adminTelegram']); jobs.push(['adminBackups', {}, 'adminBackups']); jobs.push(['adminPrint', {}, 'adminPrint']); jobs.push([null, null, 'adminFeeds']); }
     var p = Promise.resolve();
     var lanes = [Promise.resolve(), Promise.resolve(), Promise.resolve()]; // three at a time, so everything is ready in a few seconds
     jobs.forEach(function (j, i) { lanes[i % 3] = lanes[i % 3].then(function () { var call = j[0] ? api(j[0], j[1], { quiet: true }) : Promise.all([api('adminFeedStatus', {}, { quiet: true }), api('adminFeedIssues', {}, { quiet: true })]); return call.then(function (d) { ls(cacheKey(j[2]), JSON.stringify({ d: d, t: Date.now() })); }).catch(function () {}); }); });

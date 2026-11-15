@@ -37,10 +37,10 @@
       $$('[data-rt]', t).forEach(function (b) { b.onclick = function () { api('adminPrintRetry', { id: b.dataset.rt }).then(paint).catch(function (e) { toast(e.message); }); }; });
     }
     function load() {
-      return api('adminPrint', {}, { quiet: true }).then(function (d) {
+      return App.swr('adminPrint', function () { return api('adminPrint', {}, { quiet: true }); }, function (d) {
         if (!document.body.contains(t) || $('#rpKey', t) && $('#rpKey', t).innerHTML || t.querySelector('select') === document.activeElement) return;
-        paint(d);
-      }).catch(function (e) { if (e && e.code === 'adminlock') App.lockCard(t); else if (!t.querySelector('.card')) t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
+        App.keepState(t, function () { paint(d); });
+      }, { silent: true, noStatus: true, onError: function (e, have) { if (e && e.code === 'adminlock') App.lockCard(t); else if (!have && !t.querySelector('.card')) t.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; } });
     }
     load();
     var iv = setInterval(function () { if (!document.body.contains(t)) { clearInterval(iv); return; } load(); }, 10000);
