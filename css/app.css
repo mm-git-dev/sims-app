@@ -79,6 +79,11 @@ label.f { display: block; margin: 10px 0 4px; font-size: 14px; color: var(--mute
 .btn.bad { color: var(--bad); }
 .btn.big { padding: 18px 22px; font-size: 19px; width: 100%; }
 .btn:disabled { opacity: .5; cursor: default; }
+/* press feedback: instant dip on touch, spinner while the request runs */
+button:active:not(:disabled) { transform: scale(.96); filter: brightness(.88); }
+button.waiting { opacity: .65; pointer-events: none; position: relative; }
+button.ib.waiting::after { display: none; }
+button.waiting::after { content: ""; display: inline-block; width: 14px; height: 14px; margin-left: 8px; vertical-align: -2px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite; }
 .chip { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 13px; border: 1px solid var(--line); background: var(--surface2); }
 .chip.ok { color: var(--ok); border-color: var(--ok); } .chip.warn { color: var(--warn); border-color: var(--warn); } .chip.bad { color: var(--bad); border-color: var(--bad); } .chip.acc, .chip.info { color: var(--info); border-color: var(--info); }
 .list > * { border-bottom: 1px solid var(--line); }

@@ -69,7 +69,16 @@
     return { type: type, browser: br };
   }
   App.deviceInfo = deviceInfo;
+  // Press feedback for every button in the app: the button you just pressed shows a spinner and ignores taps until its request finishes.
+  var lastPress = { el: null, t: 0 };
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) lastPress = { el: b, t: Date.now() }; }, true);
   function api(action, args, opts) {
+    var btn = lastPress.el && Date.now() - lastPress.t < 700 && lastPress.el.isConnected && !lastPress.el.disabled && !lastPress.el.classList.contains('waiting') ? lastPress.el : null;
+    if (btn) { btn.classList.add('waiting'); btn.setAttribute('aria-busy', 'true'); lastPress.el = null; }
+    var done = function () { if (btn) { btn.classList.remove('waiting'); btn.removeAttribute('aria-busy'); } };
+    return api1(action, args, opts).then(function (v) { done(); return v; }, function (e) { done(); throw e; });
+  }
+  function api1(action, args, opts) {
     opts = opts || {};
     return fetch(CFG.API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: action, args: args || {}, token: App.token }) })
       .then(function (r) { return r.json(); })
