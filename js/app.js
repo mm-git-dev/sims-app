@@ -245,7 +245,7 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1 };
 
   function route() {
@@ -300,6 +300,7 @@
     if (can('transitList')) m.push({ k: 'transit', t: 'Transit List', h: '#/transit' });
     if (can('partyOrders')) m.push({ k: 'party-orders', t: 'Party Orders', h: '#/party-orders' });
     if (can('boxFinder')) m.push({ k: 'box-finder', t: 'Box Finder', h: '#/box-finder' });
+    if (can('partWatch')) m.push({ k: 'part-watch', t: 'Part Watch List', h: '#/part-watch' });
     if (can('uploadPacking')) m.push({ k: 'upload-packing', t: 'Upload Packing List', h: '#/upload-packing' });
     if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
     return m;

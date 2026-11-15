@@ -361,7 +361,7 @@
   // =====================================================================
   // Admin
   // =====================================================================
-  var ADMIN_TABS = [['users', 'Users'], ['devices', 'Connected Devices'], ['settings', 'Settings'], ['feeds', 'Data Feeds'], ['files', 'Files'], ['alerts', 'Alerts'], ['watch', 'Part Watch List'], ['backups', 'Backups'], ['print', 'Remote Printing']];
+  var ADMIN_TABS = [['users', 'Users'], ['devices', 'Connected Devices'], ['settings', 'Settings'], ['feeds', 'Data Feeds'], ['files', 'Files'], ['alerts', 'Alerts'], ['backups', 'Backups'], ['print', 'Remote Printing']];
   App.pages.admin = {
     render: function (view, r) {
       if (!App.me.user.admin) { view.innerHTML = '<div class="card">Admin only.</div>'; return; }
@@ -409,7 +409,7 @@
           };
         });
       }
-      function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: dockets, invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit' }[p] || p; }
+      function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: dockets, invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit', partWatch: 'Part Watch List: add parts to watch' }[p] || p; }
       function devicesTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminDevices', function () { return api('adminDevices'); }, function (d) {

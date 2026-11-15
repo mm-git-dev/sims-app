@@ -338,7 +338,7 @@ var SIMS_CORE = (function () {
     defaults: ['partLocation', 'docketGrn', 'searchParts'],
     extra: ['searchDockets', 'boxScan', 'combinedGrn', 'pendingItems', 'pendingClaims', 'addDelivery', 'uploadPod', 'uploadClaim',
       'editPodRemarks', 'markPoms', 'markSettled', 'missedClaims', 'partyOrders', 'manageOrders', 'printPacking', 'transitList',
-      'boxFinder', 'docketHistory', 'uploadPacking', 'refreshTransit']
+      'boxFinder', 'docketHistory', 'uploadPacking', 'refreshTransit', 'partWatch']
   };
   var PERM_INFO = {
     partBasic: 'See a part\'s number, description and MRP. Always on.',
@@ -364,7 +364,8 @@ var SIMS_CORE = (function () {
     boxFinder: 'Find which case an invoice part was packed in.',
     docketHistory: 'On Docket Details, open the timeline of who did what, and find dockets older than 90 days in the archive.',
     uploadPacking: 'Upload the company packing list.',
-    refreshTransit: 'Refresh transit now instead of waiting.'
+    refreshTransit: 'Refresh transit now instead of waiting.',
+    partWatch: 'Part Watch List: add parts to watch and get an alert when one first arrives. Remove only the ones they added.'
   };
   function allPerms() { return PERMS.always.concat(PERMS.defaults, PERMS.extra); }
   function can(user, perm) {

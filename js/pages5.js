@@ -68,6 +68,8 @@
     }, { silent: true }).catch(function () { });
   };
 
+  App.pages['part-watch'] = { perm: 'partWatch', render: function (view) { return App.adminTabs.watch(view); } };
+
   // =====================================================================
   // Admin tabs
   // =====================================================================
@@ -111,11 +113,11 @@
     },
 
     // ---------- Part Watch List ----------
-    watch: function (t) {
+    watch: function (t) { /* used by the Part Watch List page */
       t.innerHTML = '<span class="spinner"></span>';
       function paint(d) {
         t.innerHTML = '<div class="card"><div class="small muted" style="margin-bottom:8px">The first time a watched part arrives (its Docket GRN sheet is printed) a Part Watch List Alert is sent and the part leaves this list.</div><div class="row"><input type="text" id="wP" class="grow" placeholder="Part number" autocapitalize="characters" autocomplete="off"><button class="btn pri" id="wAdd">Add</button></div><input type="text" id="wN" placeholder="Note (optional)" maxlength="200" style="margin-top:8px"><div id="wMsg" class="small" style="margin-top:8px"></div></div>' +
-          '<div class="card">' + (d.items.length ? '<div class="list">' + d.items.map(function (w) { return '<div class="item"><div class="grow"><div class="bold mono">' + esc(w.part) + '</div><div class="small muted">' + esc(stamp(w.addedAt)) + ' · ' + esc(w.by) + (w.note ? ' · ' + esc(w.note) : '') + '</div></div><button class="btn" data-rm="' + esc(w.part) + '">Remove</button></div>'; }).join('') + '</div>' : '<span class="muted">No watched parts.</span>') + '</div>';
+          '<div class="card">' + (d.items.length ? '<div class="list">' + d.items.map(function (w) { var mine = d.canRemoveAll || w.by === d.me; return '<div class="item"><div class="grow"><div class="bold mono">' + esc(w.part) + '</div><div class="small muted">' + esc(stamp(w.addedAt)) + ' · ' + esc(w.by) + (w.note ? ' · ' + esc(w.note) : '') + '</div></div>' + (mine ? '<button class="btn" data-rm="' + esc(w.part) + '">Remove</button>' : '') + '</div>'; }).join('') + '</div>' : '<span class="muted">No watched parts.</span>') + '</div>';
         $('#wAdd').onclick = function () { var b = this; busy(b, true, 'Adding…'); api('watchAdd', { part: $('#wP').value, note: $('#wN').value }).then(paint).catch(function (e) { busy(b, false); $('#wMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); };
         $$('[data-rm]', t).forEach(function (b) { b.onclick = function () { api('watchRemove', { part: b.dataset.rm }).then(paint).catch(function (e) { toast(e.message); }); }; });
       }
