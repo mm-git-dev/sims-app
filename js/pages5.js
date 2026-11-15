@@ -132,14 +132,13 @@
       return App.swr('watchList', function () { return api('watchList'); }, paint, { silent: true, onError: function (e, haveCopy) { if (!haveCopy) errBox(t, e); } });
     },
 
-    // ---------- Backups and POD storage ----------
+    // ---------- Backups ----------
     backups: function (t) {
       t.innerHTML = '<span class="spinner"></span>';
       var nm = { transit: 'Transit', price: 'Price list', rack: 'Rack bin list' };
       function paint(d, st) {
-        var h = '<div class="card"><div class="bold">POD account storage</div>';
-        h += st && st.ok ? '<div style="margin:8px 0"><div style="height:10px;background:var(--field);border-radius:6px;overflow:hidden"><div style="height:10px;width:' + Math.min(100, st.pct) + '%;background:' + (st.pct >= 80 ? 'var(--bad)' : 'var(--accent)') + '"></div></div></div><div class="small">' + (st.used / 1073741824).toFixed(2) + ' GB of ' + (st.limit / 1073741824).toFixed(1) + ' GB used (' + st.pct + '%)' + (st.monthsLeft ? ' · about ' + st.monthsLeft + ' months left at the current rate' : '') + '</div>' + (st.pct >= 80 ? '<div class="small" style="color:var(--bad);margin-top:6px">Over 80% full. Free up space or add storage.</div>' : '') : '<div class="small muted">' + esc(st && st.error || 'Not available yet.') + '</div>';
-        h += '</div><h3>Feed backups</h3><div class="small muted" style="margin-bottom:8px">The last 3 good copies of each feed are kept. Roll back to put an older copy in front of the devices. Rolling back the transit list changes what devices see; GRN history is not rewritten.</div>';
+        var h = '<h3 style="margin-top:0">Feed backups</h3>';
+        h += '<div class="small muted" style="margin-bottom:8px">The last 3 good copies of each feed are kept. Roll back to put an older copy in front of the devices. Rolling back the transit list changes what devices see; GRN history is not rewritten.</div>';
         h += ['transit', 'price', 'rack'].map(function (k) {
           var rows = d.backups.filter(function (b) { return b.kind === k; });
           return '<div class="card"><div class="bold">' + nm[k] + '</div>' + (rows.length ? '<div class="list">' + rows.map(function (b) { return '<div class="item"><div class="grow"><div>Version ' + b.version + (b.current ? ' <span class="chip ok">current</span>' : '') + '</div><div class="small muted">' + esc(stamp(b.at)) + ' · ' + b.rows + ' rows</div></div>' + (b.current ? '' : '<button class="btn" data-rb="' + k + ':' + b.slot + '">Roll back</button>') + '</div>'; }).join('') + '</div>' : '<span class="muted">No backups yet.</span>') + '</div>';
@@ -152,7 +151,7 @@
           };
         });
       }
-      return Promise.all([api('adminBackups'), api('adminStorage').catch(function (e) { return { ok: false, error: e.message }; })]).then(function (a) { paint(a[0], a[1]); }).catch(function (e) { errBox(t, e); });
+      return api('adminBackups').then(function (d) { paint(d); }).catch(function (e) { errBox(t, e); });
     }
   };
 })();

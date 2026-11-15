@@ -191,7 +191,7 @@
     try { cached = JSON.parse(ls(ck) || 'null'); } catch (e) { cached = null; }
     function go(d) { if (App.routeSeq !== rid) return; paint(d); }
     if (cached && !opts.fresh) { shown = JSON.stringify(cached.d); try { go(cached.d); } catch (e) { shown = null; } }
-    var track = !!(cached && !opts.fresh && !opts.noStatus);
+    var track = !!(cached && !opts.fresh && !opts.noStatus && !App.inLive);   // the icon shows when a page opens, not on the quiet background refresh
     if (track) syncStart();
     return fetchFn().then(function (d) {
       var s = JSON.stringify(d); ls(ck, JSON.stringify({ d: d, t: Date.now() })); cacheRemember(key);
@@ -223,7 +223,8 @@
     if (document.hidden || !App.liveFn || !App.me) return;
     if (document.querySelector('.modal, .overlay')) return;
     var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && $('#page') && $('#page').contains(ae)) return;
-    try { App.liveFn(); } catch (e) { /* ignore */ }
+    App.inLive = true; try { App.liveFn(); } catch (e) { /* ignore */ }
+    App.inLive = false;
   }
   setInterval(liveTick, 20000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(liveTick, 300); });
@@ -289,7 +290,7 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Admin', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Settings', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1 };
 
   function route() {
@@ -346,7 +347,7 @@
     if (can('boxFinder')) m.push({ k: 'box-finder', t: 'Box Finder', h: '#/box-finder' });
     if (can('partWatch')) m.push({ k: 'part-watch', t: 'Part Watch List', h: '#/part-watch' });
     if (can('uploadPacking')) m.push({ k: 'upload-packing', t: 'Upload Packing List', h: '#/upload-packing' });
-    if (App.me.user.admin) m.push({ k: 'admin', t: 'Admin', h: '#/admin' });
+    if (App.me.user.admin) m.push({ k: 'admin', t: 'Settings', h: '#/admin' });
     return m;
   }
   function renderShell() {
@@ -612,7 +613,7 @@
       sb.onclick = function () { App.scan({ mode: 'route' }); };
       $('#hSearch').onclick = openSearch; $('#hSearch').onfocus = openSearch;
       this.tick();
-      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true, noStatus: true }); }; hs(); App.live(function () { hs(); App.refreshLists(); }); }
+      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true, noStatus: true }); }; hs(); var lastHome = Date.now(); App.live(function () { if (Date.now() - lastHome < 55000) return; lastHome = Date.now(); hs(); App.refreshLists(); }); }
     },
     tick: function () {
       var el = $('#hFresh'); if (!el) return;
