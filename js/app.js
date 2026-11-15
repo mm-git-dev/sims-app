@@ -439,7 +439,7 @@
       (function poll() {
         pollTimer = setTimeout(function () {
           api('loginStatus', { reqId: r.reqId, secret: r.secret }, { quiet: true }).then(function (s) {
-            if (s.status === 'approved') startSession(s.token);
+            if (s.status === 'approved') { startSession(s.token); setTimeout(function () { api('labelWindow', { deviceId: deviceId() }, { quiet: true }).catch(function () { }); }, 1500); }
             else if (s.status === 'rejected') showLogin('The admin did not approve this login.');
             else poll();
           }).catch(function () { poll(); });
@@ -632,7 +632,7 @@
       sb.onclick = function () { App.scan({ mode: 'route' }); };
       $('#hSearch').onclick = openSearch; $('#hSearch').onfocus = openSearch;
       this.tick();
-      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true, noStatus: true }); }; hs(); var lastHome = Date.now(); App.live(function () { if (Date.now() - lastHome < 55000) return; lastHome = Date.now(); hs(); App.refreshLists(); }); }
+      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true, noStatus: true }); }; hs(); App.live(function () { hs(); App.refreshLists(); }); }
     },
     tick: function () {
       var el = $('#hFresh'); if (!el) return;

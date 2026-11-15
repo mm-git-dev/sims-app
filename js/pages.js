@@ -343,6 +343,7 @@
       view.innerHTML = '<div class="brand" style="padding-left:0">SIMS</div><h2>Login request</h2><div id="ap"><span class="spinner"></span></div>';
       var args = { id: r.q.id, sig: r.q.sig };
       api('approveInfo', args, { quiet: true }).then(function (d) {
+        if (d.status === 'expired') { $('#ap').innerHTML = '<div class="card">This request expired because it was not approved within 10 minutes. Ask the person to log in again.</div>'; return; }
         if (d.status !== 'pending') { $('#ap').innerHTML = '<div class="card">This request was already ' + esc(d.status) + '.</div>'; return; }
         $('#ap').innerHTML = '<div class="card"><div class="bold" style="font-size:20px">🔐 ' + esc(d.name) + ' wants to log in</div><div class="muted">' + esc(d.device) + ' · ' + esc(stamp(d.at)) + '</div>' +
           '<label class="f">Device label (optional), e.g. Office PC</label><input type="text" id="apl" maxlength="30" value="' + esc(d.lastLabel || '') + '"><div class="row" style="margin-top:14px"><button class="btn pri" id="apY">Approve</button><button class="btn bad" id="apN">Reject</button></div></div>';
