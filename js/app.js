@@ -258,7 +258,7 @@
   /** Shown instead of "no permission" while an Admin session is still locked. */
   App.lockCard = function (view) {
     var tg = !App.me || App.me.adminVia !== 'email';
-    view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>This login can only scan parts until you unlock it. Tap the button and SIMS sends a request to your ' + (tg ? 'Telegram' : 'email') + '.</p><button class="btn pri" id="lkReq">Unlock Admin</button><div id="lkMsg" class="muted" style="margin-top:10px"></div></div>';
+    view.innerHTML = '<div class="card warn"><h2 style="margin-top:0">Admin is locked</h2><p>This login can only scan parts until you unlock it. Tap the button and SIMS sends you a request to approve.</p><button class="btn pri" id="lkReq">Unlock Admin</button><div id="lkMsg" class="muted" style="margin-top:10px"></div></div>';
     $('#lkReq', view).onclick = function () { App.unlockAdmin($('#lkMsg', view), this); };
   };
   var unlockTimer = null;
@@ -267,7 +267,8 @@
     btn.disabled = true; btn.textContent = 'Sending…';
     api('requestAdmin', { device: App.deviceInfo().type }).then(function (r) {
       btn.textContent = 'Request sent';
-      msgEl.innerHTML = r.via === 'telegram' ? 'Sent to your Telegram. Tap <b>Unlock this device</b> there; this page opens by itself.' : 'Sent to your email. Open the link on any device and tap <b>Unlock</b>; this page opens by itself.';
+      var vt = r.via.indexOf('telegram') >= 0, ve = r.via.indexOf('email') >= 0;
+      msgEl.innerHTML = 'Sent to your ' + (vt && ve ? 'Telegram and email' : vt ? 'Telegram' : 'email') + '. ' + (vt ? 'Tap <b>Unlock this device</b> in Telegram' : 'Open the link on any device and tap <b>Unlock</b>') + '; this page opens by itself.';
       var tries = 0; clearTimeout(unlockTimer);
       (function poll() {
         unlockTimer = setTimeout(function () {

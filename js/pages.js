@@ -391,7 +391,7 @@
       function tabs() { return '<div class="tabs">' + ADMIN_TABS.map(function (t) { return '<button data-t="' + t[0] + '"' + (t[0] === tab ? ' class="on"' : '') + '>' + t[1] + '</button>'; }).join('') + '</div>'; }
       // Users and their logged-in devices in one place: names A to Z, Admin last.
       function usersTab(t, fresh) {
-        t.innerHTML = '<span class="spinner"></span>';
+        if (!t.firstChild) t.innerHTML = '<span class="spinner"></span>';
         var U = null, D = null;
         function draw() { if (!U || anyPanelOpen()) return; paintUsers(t, U, D || { devices: [] }); }
         tabSwr('adminUsers', function () { return api('adminUsers', {}, { quiet: true }); }, function (u) { U = u; draw(); }, fresh);
@@ -438,17 +438,17 @@
           t.innerHTML = '<div class="card"><h3 style="margin-top:0">Office hours</h3><div class="row"><div class="grow"><label class="f">Opens</label><input type="text" id="sS" value="' + esc(s.officeStart) + '" placeholder="10:00"></div><div class="grow"><label class="f">Closes</label><input type="text" id="sE" value="' + esc(s.officeEnd) + '" placeholder="19:00"></div></div>' +
             '<label class="f">Working days</label><div class="row">' + [1, 2, 3, 4, 5, 6, 0].map(function (d2) { return '<label class="chip"><input type="checkbox" data-d="' + d2 + '"' + (days.indexOf(d2) >= 0 ? ' checked' : '') + '> ' + dn[d2] + '</label>'; }).join('') + '</div>' +
             '<h3>Orders</h3><label class="f">Order expiry (days)</label><input type="number" id="sX" value="' + esc(s.orderExpiryDays) + '"><h3>Scanning</h3><label class="f">Scan sounds</label><select id="sSnd"><option value="off">Off</option><option value="on">On</option></select>' +
-            '<h3>Logins</h3><label class="item"><input type="checkbox" id="sAuto"' + (s.autoAccept === 'on' ? ' checked' : '') + '><span>Auto-accept logins (turn OFF at go-live)</span></label><div class="small muted">Admin email: ' + esc(s.adminEmail) + '</div><button class="btn pri" id="sSave" style="margin-top:14px">Save settings</button></div>';
+            '<h3>Logins</h3><label class="item"><input type="checkbox" id="sAuto"' + (s.autoAccept === 'on' ? ' checked' : '') + '><span>Auto-accept logins (turn OFF at go-live)</span></label><h3>Approval requests</h3><div class="small muted" style="margin-bottom:6px">Where SIMS sends new login requests and Admin unlock requests, so you can approve or refuse them. You can also answer them any time in Settings, Users.</div><label class="item"><input type="checkbox" id="sApT"' + (s.approvalVia.indexOf('telegram') >= 0 ? ' checked' : '') + '><span>Telegram</span></label><label class="item"><input type="checkbox" id="sApE"' + (s.approvalVia.indexOf('email') >= 0 ? ' checked' : '') + '><span>Email</span></label><button class="btn pri" id="sSave" style="margin-top:14px">Save settings</button></div>';
           $('#sSnd').value = s.scanSounds;
           t.oninput = t.onchange = function () { t.dataset.dirty = '1'; };
           $('#sSave').onclick = function () {
             var dd = $$('[data-d]', t).filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.d; }).sort().join(',');
-            api('adminSaveSettings', { settings: { officeStart: $('#sS').value.trim(), officeEnd: $('#sE').value.trim(), officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off' } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
+            api('adminSaveSettings', { settings: { officeStart: $('#sS').value.trim(), officeEnd: $('#sE').value.trim(), officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off', approvalVia: ($('#sApT').checked ? ($('#sApE').checked ? 'telegram,email' : 'telegram') : ($('#sApE').checked ? 'email' : 'none')) } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
           };
         }, fresh);
       }
       function feedsTab(t, fresh) {
-        t.innerHTML = '<span class="spinner"></span>';
+        if (!t.firstChild) t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminFeeds', function () { return Promise.all([api('adminFeedStatus'), api('adminFeedIssues')]); }, function (a) {
           var nm = { transit: 'Transit', price: 'Price list', rack: 'Rack bin list', relay: 'Relay file' };
           t.innerHTML = '<div class="row" style="margin-bottom:10px"><button class="btn pri" id="fr">Refresh now</button><span class="muted small" id="frm"></span></div>' + a[0].meta.map(function (m) { return '<div class="card"><div class="row between"><div class="bold">' + nm[m.source] + '</div><span class="chip ' + (m.status === 'ok' ? 'ok' : 'warn') + '">' + esc(m.status) + '</span></div><div class="small muted">Last update ' + esc(m.updatedAt ? stamp(Number(m.updatedAt)) : 'never') + (m.rows ? ' · ' + m.rows + ' rows' : '') + (m.message ? ' · ' + esc(m.message) : '') + '</div></div>'; }).join('') +
@@ -457,8 +457,8 @@
         }, fresh);
       }
       function filesTab(t, fresh) {
-        t.innerHTML = '<span class="spinner"></span>';
-        tabSwr('adminFiles', function () { return api('adminFiles'); }, function (d) { t.innerHTML = '<div class="card"><div class="row between"><div class="bold">POD helper</div><button class="btn" id="tpod">Test</button></div><div class="small muted" id="tpodr"></div><div id="podBar" style="margin-top:10px"></div></div><div class="card"><div class="list">' + d.files.map(function (f) { return '<div class="item"><div class="grow"><div class="bold">' + esc(f.name) + '</div><div class="small muted">' + esc(f.type) + '</div></div><span class="chip ' + (f.status === 'ok' ? 'ok' : 'bad') + '">' + (f.status === 'ok' ? 'OK' : 'MISSING') + '</span></div>'; }).join('') + '</div></div>'; $('#tpod').onclick = function () { $('#tpodr').textContent = 'Testing…'; api('adminTestPod').then(function (r) { $('#tpodr').textContent = r.ok ? 'Working · ' + r.account : 'Not working: ' + (r.error || 'no reply'); }).catch(function (e) { $('#tpodr').textContent = e.message; }); }; loadPodBar(); }, fresh);
+        if (!t.firstChild) t.innerHTML = '<span class="spinner"></span>';
+        tabSwr('adminFiles', function () { return api('adminFiles'); }, function (d) { t.innerHTML = '<div class="card"><div class="row between"><div class="bold">POD helper</div><button class="btn" id="tpod">Test</button></div><div class="small muted" id="tpodr"></div><div id="podBar" style="margin-top:10px"></div></div><div class="card"><div class="list">' + d.files.map(function (f) { return '<div class="item"><div class="grow"><div class="bold">' + esc(f.name) + '</div><div class="small muted">' + esc(f.type) + '</div></div><span class="chip ' + (f.status === 'ok' ? 'ok' : 'bad') + '">' + (f.status === 'ok' ? 'OK' : 'MISSING') + '</span></div>'; }).join('') + '</div></div>'; $('#tpod').onclick = function () { $('#tpodr').textContent = 'Testing…'; api('adminTestPod').then(function (r) { $('#tpodr').textContent = r.ok ? 'Working' : 'Not working: ' + (r.error || 'no reply'); }).catch(function (e) { $('#tpodr').textContent = e.message; }); }; loadPodBar(); }, fresh);
       }
       // POD folder usage against the 3 GB set aside for it (not the whole Drive)
       function loadPodBar() {
