@@ -95,10 +95,10 @@
           Object.keys(d.alerts).map(function (k) {
             var a = d.alerts[k];
             return '<tr><td style="' + cell + '"><div class="bold">' + esc(a.label) + '</div><div class="small muted">' + esc(WHEN[k] || '') + '</div></td>' +
-              '<td style="' + cell + ';text-align:center"><input type="checkbox" data-to="' + k + '" value="me" aria-label="' + esc(a.label) + ' to Admin"' + (a.to.indexOf('me') >= 0 ? ' checked' : '') + '></td>' +
+              '<td style="' + cell + ';text-align:center"><label class="item" style="justify-content:center;padding:4px 0"><input type="checkbox" data-to="' + k + '" value="me" aria-label="' + esc(a.label) + ' to Admin"' + (a.to.indexOf('me') >= 0 ? ' checked' : '') + '></label></td>' +
               '<td style="' + cell + '">' + (connectedGroups.length ? connectedGroups.map(function (g) { return '<label class="item" style="padding:4px 0"><input type="checkbox" data-to="' + k + '" value="' + esc(g.id) + '"' + (a.to.indexOf(g.id) >= 0 ? ' checked' : '') + '><span>' + esc(g.name || g.title) + '</span></label>'; }).join('') : '<span class="small muted">No group connected</span>') + '</td></tr>';
           }).join('') +
-          FIXED.map(function (f) { return '<tr><td style="' + cell + '"><div class="bold">' + esc(f[0]) + '</div><div class="small muted">' + esc(f[1]) + '</div></td><td style="' + cell + ';text-align:center"><input type="checkbox" checked disabled aria-label="' + esc(f[0]) + ' always goes to Admin"></td><td style="' + cell + '" class="muted">–</td></tr>'; }).join('') +
+          FIXED.map(function (f) { return '<tr><td style="' + cell + '"><div class="bold">' + esc(f[0]) + '</div><div class="small muted">' + esc(f[1]) + '</div></td><td style="' + cell + ';text-align:center"><label class="item" style="justify-content:center;padding:4px 0"><input type="checkbox" checked disabled aria-label="' + esc(f[0]) + ' always goes to Admin"></label></td><td style="' + cell + '" class="muted">–</td></tr>'; }).join('') +
           '</tbody></table></div>';
         t.innerHTML = h;
         $('#tgSave') && ($('#tgSave').onclick = function () { var b = this; busy(b, true, 'Checking…'); api('adminTgToken', { token: $('#tgTok').value }).then(function (r) { toast('Connected to @' + r.bot + (r.webhook ? '.' : ' (webhook not set).')); load(); }).catch(function (e) { busy(b, false); $('#tgMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }); });
