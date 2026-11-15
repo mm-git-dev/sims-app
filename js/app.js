@@ -150,17 +150,32 @@
   /** fetchFn() -> promise of data. paint(data) draws it.
       Shows the saved copy immediately, then the fresh one if it differs. Never paints into a page the user has left.
       opts: {fresh: skip the saved copy; onError(e): called if the refresh fails (even when a saved copy is on screen); silent: do not show errors} */
+  // Small status next to the page title while a saved copy is on screen: "Refreshing…", then "Updated" (if something changed) or nothing.
+  var sync = { n: 0, t: null, hide: null };
+  function syncShow(kind, text) { var el = $('#sync'); if (!el) return; clearTimeout(sync.hide); el.className = 'on ' + kind; el.innerHTML = (kind === 'run' ? '<span class="sp"></span>' : kind === 'ok' ? '✓' : '⚠') + '<span class="t">' + text + '</span>'; }
+  function syncHide() { var el = $('#sync'); if (el) el.className = ''; }
+  function syncStart() { sync.n++; clearTimeout(sync.t); clearTimeout(sync.hide); sync.t = setTimeout(function () { if (sync.n > 0) syncShow('run', 'Refreshing…'); }, 250); }
+  function syncEnd(res) {
+    sync.n = Math.max(0, sync.n - 1); if (sync.n > 0) return; clearTimeout(sync.t);
+    if (res === 'changed') { syncShow('ok', 'Updated'); sync.hide = setTimeout(syncHide, 2500); }
+    else if (res === 'error') { syncShow('bad', 'No connection, showing saved copy'); sync.hide = setTimeout(syncHide, 5000); }
+    else syncHide();
+  }
   App.swr = function (key, fetchFn, paint, opts) {
     opts = opts || {};
     var rid = App.routeSeq, ck = cacheKey(key), cached = null, shown = null;
     try { cached = JSON.parse(ls(ck) || 'null'); } catch (e) { cached = null; }
     function go(d) { if (App.routeSeq !== rid) return; paint(d); }
     if (cached && !opts.fresh) { shown = JSON.stringify(cached.d); try { go(cached.d); } catch (e) { shown = null; } }
+    var track = !!(cached && !opts.fresh && !opts.noStatus);
+    if (track) syncStart();
     return fetchFn().then(function (d) {
       var s = JSON.stringify(d); ls(ck, JSON.stringify({ d: d, t: Date.now() })); cacheRemember(key);
-      if (s !== shown) go(d);
-      shown = s; return d;
+      var changed = s !== shown;
+      if (changed) go(d);
+      shown = s; if (track) syncEnd(changed ? 'changed' : 'same'); return d;
     }, function (e) {
+      if (track) syncEnd('error');
       if (opts.onError && App.routeSeq === rid) opts.onError(e, shown !== null);
       if (shown === null && !opts.silent) throw e;
     });
@@ -198,6 +213,8 @@
     if (App.can('pendingClaims')) jobs.push(['pendingClaims', { all: false }, 'pendingClaims:open']);
     if (App.can('missedClaims')) jobs.push(['missedList', { all: false }, 'missedList:open']);
     if (App.can('partWatch')) jobs.push(['watchList', {}, 'watchList']);
+    if (App.can('partyOrders')) jobs.push(['orders', {}, 'orders']);
+    if (App.can('uploadPacking')) jobs.push(['packStatus', {}, 'packStatus']);
     jobs.push(['homeStatus', {}, 'homeStatus']);
     if (App.me.user.admin) { jobs.push(['adminUsers', {}, 'adminUsers']); jobs.push(['adminDevices', {}, 'adminDevices']); jobs.push(['adminSettings', {}, 'adminSettings']); jobs.push(['adminFiles', {}, 'adminFiles']); jobs.push([null, null, 'adminFeeds']); }
     var p = Promise.resolve();
@@ -311,7 +328,7 @@
     $('#boot') && $('#boot').remove();
     $('#root').innerHTML =
       '<div id="app"><aside id="side"><div class="brand">SIMS<small>Stock Inward Management</small></div><nav id="menu"></nav></aside><div id="scrim" class="hide"></div>' +
-      '<div id="main"><header id="top"><button class="ib mobileOnly" id="menuBtn" aria-label="Menu">' + ICON.menu + '</button><h1 id="pageTitle">SIMS</h1><span id="who"></span>' +
+      '<div id="main"><header id="top"><button class="ib mobileOnly" id="menuBtn" aria-label="Menu">' + ICON.menu + '</button><h1 id="pageTitle">SIMS</h1><span id="sync" aria-live="polite"></span><span id="who"></span>' +
       '<button class="ib" id="searchBtn" aria-label="Search">' + ICON.search + '</button><button class="ib hide" id="scanBtn" aria-label="Scan">' + ICON.scan + '</button></header><main id="page"></main></div></div>';
     $('#menuBtn').onclick = function () {
       var s = $('#side');
@@ -566,7 +583,7 @@
       sb.onclick = function () { App.scan({ mode: 'route' }); };
       $('#hSearch').onclick = openSearch; $('#hSearch').onfocus = openSearch;
       this.tick();
-      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true }); }; hs(); App.live(function () { hs(); App.refreshLists(); }); }
+      if (App.open()) { var hs = function () { return App.swr('homeStatus', function () { return api('homeStatus'); }, function (s) { App.pages.home.stat(s); }, { silent: true, noStatus: true }); }; hs(); App.live(function () { hs(); App.refreshLists(); }); }
     },
     tick: function () {
       var el = $('#hFresh'); if (!el) return;
