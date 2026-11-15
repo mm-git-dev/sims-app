@@ -38,7 +38,7 @@ a { color: var(--accent); }
 #sync.ok { color: var(--ok); }
 #sync.bad { color: var(--warn); }
 #sync .sp { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite; }
-@media (max-width: 520px) { #sync .t { display: none; } #top h1 { font-size: 18px; } }
+@media (max-width: 520px) { #sync { font-size: 12px; gap: 4px; } #top h1 { font-size: 18px; } }
 #who { font-size: 13px; color: var(--muted); white-space: nowrap; max-width: 36vw; overflow: hidden; text-overflow: ellipsis; }
 .ib { width: 44px; height: 44px; border-radius: 12px; border: 0; background: none; display: grid; place-items: center; }
 .ib:hover { background: var(--surface2); }
