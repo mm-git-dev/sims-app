@@ -17,7 +17,17 @@
     render: function (view, r) {
       if (!App.can('boxScan') && !App.can('boxFinder')) { view.innerHTML = '<div class="card">You do not have permission to see box contents.</div>'; return; }
       var c = String(r.arg || '').replace(/\D/g, '');
-      function load(fresh) { return App.swr('box:' + c, function () { return api('boxInfo', { caseNo: c }); }, function (d) { App.keepState(view, function () { view.innerHTML = boxHtml(d); App.feedback(!!d.found); }); }, { fresh: fresh }); }
+      function paint(d) { App.keepState(view, function () { view.innerHTML = boxHtml(d); App.feedback(!!d.found); }); }
+      function load(fresh) { return App.swr('box:' + c, function () { return api('boxInfo', { caseNo: c }); }, paint, { fresh: fresh }); }
+      // The packing list is kept on the device, so a box found there opens at once with no server call.
+      var rows = App.lists.packByCase && App.lists.packByCase.get(c);
+      if (rows && rows.length) {
+        var inv = {}; rows.forEach(function (x) { inv[x.invoice] = 1; });
+        paint({ found: true, caseNo: c, delivery: rows[0].delivery, carton: rows[0].carton, uploadedAt: rows[0].at, invoices: Object.keys(inv),
+          lines: rows.map(function (x) { return { part: x.part, desc: x.desc, qty: x.qty, invoice: x.invoice }; }), total: rows.reduce(function (t, x) { return t + x.qty; }, 0) });
+        return;
+      }
+      // not on the device (a newer upload, or the list has not arrived yet): ask the server as before
       App.live(function () { load(false); });
       return load(false);
     }
@@ -32,8 +42,12 @@
       function go() {
         var i = inv.value.replace(/\s+/g, ''), p = prt.value.replace(/\s+/g, '').toUpperCase();
         if (!i || !p) { toast('Enter the invoice number and the part number.'); return; }
-        res.innerHTML = '<span class="spinner"></span>';
-        api('boxFind', { invoice: i, part: p }).then(function (d) {
+        function digits(x) { return String(x || '').replace(/\D/g, ''); }
+        function same(typed, listed) { var t = digits(typed), l = digits(listed); if (!t || !l) return false; if (t === l) return true; return t.length >= 5 && l.length >= 5 && (t.slice(-l.length) === l || l.slice(-t.length) === t); }
+        var local = null, pool = App.lists.packByPart && App.lists.packByPart.get(p);
+        if (pool) { var by = {}; pool.filter(function (x) { return same(i, x.invoice); }).forEach(function (x) { var e = by[x.caseNo] || (by[x.caseNo] = { caseNo: x.caseNo, carton: x.carton, qty: 0, invoice: x.invoice }); e.qty += x.qty; }); var ks = Object.keys(by); if (ks.length) local = { found: true, cases: ks.map(function (k) { return by[k]; }) }; }
+        res.innerHTML = local ? '' : '<span class="spinner"></span>';
+        (local ? Promise.resolve(local) : api('boxFind', { invoice: i, part: p })).then(function (d) {
           if (!d.found) { res.innerHTML = '<div class="card bad">Not found in the packing list' + (d.status && d.status.lastUpload ? ' uploaded ' + esc(stamp(d.status.lastUpload)) : '') + '. Check the invoice and part number.</div>'; App.feedback(false); return; }
           App.feedback(true);
           res.innerHTML = '<h3>Packed in</h3><div class="list">' + d.cases.map(function (x) { return '<div class="item click" data-c="' + esc(x.caseNo) + '"><div class="grow"><div class="mono bold" style="font-size:20px">' + esc(x.caseNo) + '</div><div class="small muted">' + esc(x.carton) + ' · invoice ' + esc(x.invoice) + '</div></div><span class="chip acc">Qty ' + esc(x.qty) + '</span></div>'; }).join('') + '</div><div class="small muted" style="margin-top:8px">Tap a case to see everything else in it.</div>';
@@ -84,7 +98,7 @@
           var chain = Promise.resolve();
           for (var i = 0; i < arr.length; i += CHUNK) (function (part) { chain = chain.then(function () { return api('packUpload', { lines: part }).then(function () { sent += part.length; prog(); }); }); })(arr.slice(i, i + CHUNK));
           return chain;
-        }).then(function () { return api('packUpload', { end: true, total: arr.length, cases: cases.length, bad: bad }); })
+        }).then(function () { return api('packUpload', { end: true, total: arr.length, cases: cases.length, bad: bad }).then(function (r) { App.refreshLists(); return r; }); })
           .then(function () { msg.innerHTML = '<div class="card ok"><b>Done.</b> ' + arr.length + ' lines in ' + cases.length + ' cases are ready for Box Finder and box scanning.</div>'; file.value = ''; stat(true); })
           .catch(function (e) { busy(b, false); msg.insertAdjacentHTML('beforeend', '<div class="card bad err">' + esc(e.message) + ' Upload again to retry.</div>'); });
       }

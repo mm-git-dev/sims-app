@@ -129,6 +129,16 @@
     L.rack = new Map(); (rk || []).forEach(function (r) { L.rack.set(r[0], [r[1], r[2]]); });
     L.transitBy = new Map(); (tr || []).forEach(function (r) { var o = { invoice: r[0], part: r[1], desc: r[2], qty: r[3], lr: r[4], lrDate: r[5], po: r[6], rack: r[7], bin: r[8] }; if (!L.transitBy.has(o.part)) L.transitBy.set(o.part, []); L.transitBy.get(o.part).push(o); });
     // docket and invoice numbers for as-you-type search (open transit lines only)
+    // packing list: by case number (box scan) and by part (Box Finder)
+    L.packByCase = null; L.packByPart = null;
+    if (L.raw.pack) {
+      L.packByCase = new Map(); L.packByPart = new Map();
+      L.raw.pack.forEach(function (r) {
+        var o = { caseNo: r[0], invoice: r[1], delivery: r[2], carton: r[3], part: r[4], desc: r[5], qty: r[6], at: r[7] };
+        if (!L.packByCase.has(o.caseNo)) L.packByCase.set(o.caseNo, []); L.packByCase.get(o.caseNo).push(o);
+        if (!L.packByPart.has(o.part)) L.packByPart.set(o.part, []); L.packByPart.get(o.part).push(o);
+      });
+    }
     L.lrIdx = new Map(); L.invIdx = new Map();
     (tr || []).forEach(function (r) {
       var lr = r[4], inv = r[0];
@@ -141,7 +151,7 @@
       var role = App.me && App.me.user.admin ? 1 : 0;
       App.lists.raw = { price: null, rack: null, transit: null }; App.lists.ver = {}; App.lists.marks = {}; App.lists.meta = {};
       if (c) {
-        App.lists.raw = c.raw || App.lists.raw; App.lists.ver = c.ver || {}; App.lists.marks = c.marks || {}; App.lists.meta = c.meta || {};
+        App.lists.raw = c.raw || App.lists.raw; App.lists.packLast = c.packLast; App.lists.ver = c.ver || {}; App.lists.marks = c.marks || {}; App.lists.meta = c.meta || {};
         if (c.role !== role) { App.lists.raw.price = null; App.lists.ver.price = ''; }
       }
       buildLists();
@@ -155,8 +165,9 @@
       if (d.price) { L.raw.price = d.price.rows; L.ver.price = d.price.v; }
       if (d.rack) { L.raw.rack = d.rack.rows; L.ver.rack = d.rack.v; }
       if (d.transit) { L.raw.transit = d.transit.rows; L.ver.transit = d.transit.v; L.marks = d.transit.marks || {}; }
-      if (d.price || d.rack || d.transit) buildLists();
-      idbSet('lists', { raw: L.raw, ver: L.ver, marks: L.marks, meta: L.meta, role: App.me && App.me.user.admin ? 1 : 0 });
+      if (d.pack) { L.raw.pack = d.pack.rows; L.ver.pack = d.pack.v; L.packLast = d.pack.last; }
+      if (d.price || d.rack || d.transit || d.pack) buildLists();
+      idbSet('lists', { raw: L.raw, ver: L.ver, marks: L.marks, meta: L.meta, packLast: L.packLast, role: App.me && App.me.user.admin ? 1 : 0 });
       if (App.page === 'home') App.pages.home.tick && App.pages.home.tick();
     }).catch(function () { /* offline: keep cache */ });
   };
