@@ -19,8 +19,8 @@
       var c = String(r.arg || '').replace(/\D/g, '');
       function paint(d) {
         App.keepState(view, function () {
-          // big yellow button under the contents, same as Home, so the next box can be scanned without reaching for the small icon
-          view.innerHTML = boxHtml(d) + '<div style="margin-top:14px"><button class="btn pri big' + (App.canScan() ? '' : ' hide') + '" id="bxScan">' + App.ICON.scan.replace('<svg', '<svg style="width:22px;height:22px;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:2;margin-right:8px"') + 'Scan another box</button></div>';
+          // same small button as on the part page, under the contents
+          view.innerHTML = boxHtml(d) + '<div class="row" style="margin-top:14px"><button class="btn pri' + (App.canScan() ? '' : ' hide') + '" id="bxScan">Scan next box</button></div>';
           $('#bxScan', view).onclick = function () { App.scan({ mode: 'route' }); };
           App.feedback(!!d.found);
         });
