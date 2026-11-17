@@ -17,7 +17,14 @@
     render: function (view, r) {
       if (!App.can('boxScan') && !App.can('boxFinder')) { view.innerHTML = '<div class="card">You do not have permission to see box contents.</div>'; return; }
       var c = String(r.arg || '').replace(/\D/g, '');
-      function paint(d) { App.keepState(view, function () { view.innerHTML = boxHtml(d); App.feedback(!!d.found); }); }
+      function paint(d) {
+        App.keepState(view, function () {
+          // big yellow button under the contents, same as Home, so the next box can be scanned without reaching for the small icon
+          view.innerHTML = boxHtml(d) + '<div style="margin-top:14px"><button class="btn pri big' + (App.canScan() ? '' : ' hide') + '" id="bxScan">' + App.ICON.scan.replace('<svg', '<svg style="width:22px;height:22px;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:2;margin-right:8px"') + 'Scan another box</button></div>';
+          $('#bxScan', view).onclick = function () { App.scan({ mode: 'route' }); };
+          App.feedback(!!d.found);
+        });
+      }
       function load(fresh) { return App.swr('box:' + c, function () { return api('boxInfo', { caseNo: c }); }, paint, { fresh: fresh }); }
       // The packing list is kept on the device, so a box found there opens at once with no server call.
       var rows = App.lists.packByCase && App.lists.packByCase.get(c);
