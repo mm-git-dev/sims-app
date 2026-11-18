@@ -394,7 +394,7 @@ var SIMS_CORE = (function () {
   }
 
   // ---------- transit dates ----------
-  function expectedDate(lrDateMs) { return lrDateMs == null ? null : lrDateMs + 8 * 86400000; }
+  function expectedDate(lrDateMs, days) { return lrDateMs == null ? null : lrDateMs + (days || 8) * 86400000; }
   function isOverdue(lrDateMs, todayMs) { return lrDateMs != null && (todayMs - lrDateMs) / 86400000 > 20; }
 
   // ---------- packing list ----------

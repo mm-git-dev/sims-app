@@ -115,7 +115,7 @@
       }
       function lineRow(l, sel, tr) {
         return '<div class="item">' + (sel ? '<input type="checkbox" data-k="' + esc(l.key) + '" checked>' : '') + '<div class="grow"><div><span class="bold mono">' + esc(l.part) + '</span> <span class="muted">× ' + esc(l.qty) + '</span></div><div class="small muted">' + esc(l.desc) + '</div>' +
-          ((tr && l.lrDate) ? '<div class="small muted">Expected ' + esc(C.fmtDay(C.expectedDate(l.lrDate))) + '</div>' : (l.batch ? '<div class="small muted">' + esc(l.batch) + '</div>' : '')) +
+          ((tr && l.lrDate) ? '<div class="small muted">Expected ' + esc(C.fmtDay(C.expectedDate(l.lrDate, 12))) + '</div>' : (l.batch ? '<div class="small muted">' + esc(l.batch) + '</div>' : '')) +
           (l.early ? '<div class="small" style="color:var(--warn)">GRN\'d early on ' + esc(C.fmtDay(l.grnDate)) + ', may have been sold, pick from location or reorder.</div>' : '') + '</div></div>';
       }
       function section(title, arr, cls, sel) { return '<h3>' + esc(title) + ' <span class="chip ' + (cls || '') + '">' + arr.length + '</span></h3><div class="card">' + (arr.length ? '<div class="list">' + arr.map(function (l) { return lineRow(l, sel, title === 'In transit'); }).join('') + '</div>' : '<span class="muted">None.</span>') + '</div>'; }
