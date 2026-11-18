@@ -122,7 +122,7 @@
       function paintStatus(d) {
         var canPrint = App.can('printPacking'), html = '<div class="card"><div class="row between"><div><div class="bold" style="font-size:20px">' + esc(d.mark) + '</div><div class="muted small">' + esc(d.party || '') + '</div></div><div class="right"><div class="small muted">Ready to pack</div><div class="bold" style="font-size:20px">₹ ' + inr(d.ready) + '</div></div></div>' +
           '<div class="row" style="margin-top:10px">' + (canPrint ? '<button class="btn pri" id="pPrint"' + (d.awaiting.length ? '' : ' disabled') + '>Print packing sheet</button>' : '') + '<button class="btn" id="pXl">Download Excel</button></div></div>';
-        html += section('Overdue', d.overdue, d.overdue.length ? 'bad' : '') + section('In transit', d.transit, '') + section('Awaiting packing', d.awaiting, d.awaiting.length ? 'warn' : '', canPrint) + section('Packed', d.packed, 'ok');
+        html += section('In transit', d.transit, '') + section('Arrived', d.arrived, d.arrived.length ? 'warn' : '') + section('Awaiting packing', d.awaiting, d.awaiting.length ? 'warn' : '', canPrint) + section('Packed', d.packed, 'ok');
         if (d.batches.length) html += '<h3>Packing batches</h3><div class="card"><div class="list">' + d.batches.map(function (b) { return '<div class="item"><div class="grow"><div class="bold">' + esc(b.name) + '</div><div class="small muted">' + esc(stamp(b.at)) + ' · ' + esc(b.by + (b.label ? ' (' + b.label + ')' : '')) + ' · ' + b.count + ' parts</div></div>' + (canPrint ? '<button class="btn" data-rp="' + esc(b.id) + '">Reprint</button>' : '') + '</div>'; }).join('') + '</div></div>';
         $('#sBody').innerHTML = html;
         var pp = $('#pPrint'); if (pp) pp.onclick = function () {
@@ -133,7 +133,7 @@
         };
         $('#pXl').onclick = function () {
           var rows = [['Section', 'Part No', 'Description', 'Qty', 'Invoice', 'LR', 'LR Date', 'Order', 'Location', 'Note']];
-          [['Overdue', d.overdue], ['In transit', d.transit], ['Awaiting packing', d.awaiting], ['Packed', d.packed]].forEach(function (s) { s[1].forEach(function (l) { rows.push([s[0], l.part, l.desc, l.qty, l.invoice, l.lr, l.lrDate ? C.fmtDay(l.lrDate) : '', l.pso, l.loc, l.early ? 'GRN\'d early ' + C.fmtDay(l.grnDate) : (l.batch || '')]); }); });
+          [['In transit', d.transit], ['Arrived', d.arrived], ['Awaiting packing', d.awaiting], ['Packed', d.packed]].forEach(function (s) { s[1].forEach(function (l) { rows.push([s[0], l.part, l.desc, l.qty, l.invoice, l.lr, l.lrDate ? C.fmtDay(l.lrDate) : '', l.pso, l.loc, l.early ? 'GRN\'d early ' + C.fmtDay(l.grnDate) : (l.batch || '')]); }); });
           xlsx(rows, d.mark, 'Order-Status-' + d.mark + '.xlsx');
         };
         $$('[data-rp]', $('#sBody')).forEach(function (b) { b.onclick = function () { api('packReprint', { id: b.dataset.rp }).then(function (x) { return SIMSPrint.print(SIMSPrint.packingSheet(x.sheet)); }).catch(function (e) { toast(e.message); }); }; });

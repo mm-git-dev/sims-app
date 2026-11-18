@@ -319,12 +319,11 @@ var SIMS_CORE = (function () {
   }
 
   // ---------- party order status ----------
-  /** Section of a party line: packed | awaiting (arrived) | early (GRN'd before the docket arrived; also awaiting) | overdue | transit. */
+  /** Section of a party line: packed | awaiting (GRN'd, ready to pack) | early (GRN'd before the docket arrived; also awaiting) | arrived (docket arrived, not GRN'd yet) | transit. */
   function partySection(l, arrived, packed, now) {
     if (packed) return 'packed';
-    if (arrived) return 'awaiting';
-    if (l.grnDate) return 'early';
-    if (l.lrDate && now - l.lrDate > 20 * 86400000) return 'overdue';
+    if (l.grnDate) return arrived ? 'awaiting' : 'early';
+    if (arrived) return 'arrived';
     return 'transit';
   }
   /** Expected arrival = LR date + 8 days; overdue after 20 days; no LR date = not yet booked. */
