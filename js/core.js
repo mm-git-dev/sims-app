@@ -159,7 +159,7 @@ var SIMS_CORE = (function () {
   var HEAD_TRANSIT = ['Invoice No.', 'Part No.', 'Description', 'Qty', 'MRP', 'LR No.', 'LR Date', 'Rack', 'Bin', 'PO No'];
   var HEAD_PRICE = ['Part No', 'Part Description', 'HSN Code', 'Tax', 'NDP', 'MRP', 'MOQ', 'Category'];
   var HEAD_RACK = ['Part No', 'Rack', 'Bin'];
-  var PO_RE = /^[A-Z]{2,4}30256\d{2}\d+$/; // PPO / MPO / PSO, plus other company prefixes seen in real data (e.g. MLPO)
+  var PO_RE = /^[A-Z]{2,4}30256\d{2}\d+$/; // PPO / MPO, plus other company prefixes seen in real data (e.g. MLPO)
   var TAXES = [5, 12, 18, 28];
 
   function headingsOk(row, expected, loose) {

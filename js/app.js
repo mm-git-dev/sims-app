@@ -684,7 +684,7 @@
         html += '<h3>In transit</h3>';
         if (!tr.length) html += '<div class="card muted">Nothing in transit for this part.</div>';
         else html += '<div class="card"><div class="list">' + tr.map(function (t) {
-          var mark = /^PSO/.test(t.po) ? (App.lists.marks[t.po] || '') : '', exp = C.expectedDate(t.lrDate);
+          var mark = /^PPO/.test(t.po) ? (App.lists.marks[t.po] || '') : '', exp = C.expectedDate(t.lrDate);
           return '<div class="item"><div class="grow"><div class="bold mono">' + (t.lr ? 'LR ' + esc(t.lr) : 'Not booked yet') + '</div><div class="small muted">Expected ' + (exp ? esc(C.fmtDay(exp)) : '—') + '</div></div>' +
             (mark ? '<span class="chip acc">' + esc(mark) + '</span>' : '') + '<div class="bold" style="font-size:20px">× ' + esc(t.qty) + '</div></div>';
         }).join('') + '</div></div>';
