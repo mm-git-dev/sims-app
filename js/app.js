@@ -491,6 +491,7 @@
     App.lists.price.forEach(function (v, k) { if (out.length < 25 && k.toUpperCase().indexOf(q) === 0) out.push(v); });
     return out;
   }
+  App.partSuggestions = partSuggestions;
   /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
   function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
