@@ -123,9 +123,17 @@
     watch: function (t) { /* used by the Part Watch List page */
       t.innerHTML = '<span class="spinner"></span>';
       function paint(d) {
-        t.innerHTML = '<div class="card"><div class="small muted" style="margin-bottom:8px">The first time a watched part arrives (its Docket GRN sheet is printed) a Part Watch List Alert is sent and the part leaves this list.</div><div class="row"><input type="text" id="wP" class="grow" placeholder="Part number" autocapitalize="characters" autocomplete="off"><button class="btn pri" id="wAdd">Add</button></div><input type="text" id="wN" placeholder="Note (optional)" maxlength="200" style="margin-top:8px"><div id="wMsg" class="small" style="margin-top:8px"></div></div>' +
+        t.innerHTML = '<div class="card"><div class="small muted" style="margin-bottom:8px">The first time a watched part arrives (its Docket GRN sheet is printed) a Part Watch List Alert is sent and the part leaves this list.</div><div class="row"><input type="text" id="wP" class="grow" placeholder="Part number" autocapitalize="characters" autocomplete="off"><button class="btn pri" id="wAdd">Add</button></div><div class="small" id="wInfo" style="margin-top:8px"></div><input type="text" id="wN" placeholder="Note (optional)" maxlength="200" style="margin-top:8px"><div id="wMsg" class="small" style="margin-top:8px"></div></div>' +
           '<div class="card">' + (d.items.length ? '<div class="list">' + d.items.map(function (w) { var mine = d.canRemoveAll || w.by === d.me; return '<div class="item"><div class="grow"><div class="bold mono">' + esc(w.part) + '</div><div class="small muted">' + esc(stamp(w.addedAt)) + ' · ' + esc(w.by) + (w.note ? ' · ' + esc(w.note) : '') + '</div></div>' + (mine ? '<button class="btn" data-rm="' + esc(w.part) + '">Remove</button>' : '') + '</div>'; }).join('') + '</div>' : '<span class="muted">No watched parts.</span>') + '</div>';
-        $('#wAdd').onclick = function () { var b = this, args = { part: $('#wP').value, note: $('#wN').value }; busy(b, true, 'Adding…'); App.swr('watchList', function () { return api('watchAdd', args); }, paint, { fresh: true, silent: true, onError: function (e) { busy(b, false); $('#wMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; } }); };
+        function info() {
+          var q = $('#wP').value.replace(/\s+/g, '').toUpperCase(), el = $('#wInfo'), p = q && App.lists.price.get(q);
+          if (!q) { el.innerHTML = ''; return; }
+          if (!p) { el.innerHTML = '<span class="muted">Not in the price list</span>'; return; }
+          var rk = App.lists.rack.get(p.part), loc = rk ? C.location(rk[0], rk[1]) : null;
+          el.innerHTML = '<span class="bold">' + esc(p.desc) + '</span><br><span class="muted">MRP ' + App.money2(p.mrp) + (loc && !loc.none && App.can('partLocation') ? ' · Location ' + esc(loc.text) : '') + '</span>';
+        }
+        $('#wP').oninput = info; info();
+        $('#wAdd').onclick = function () { var b = this, args = { part: $('#wP').value.replace(/\s+/g, '').toUpperCase(), note: $('#wN').value }; busy(b, true, 'Adding…'); App.swr('watchList', function () { return api('watchAdd', args); }, paint, { fresh: true, silent: true, onError: function (e) { busy(b, false); $('#wMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; } }); };
         $$('[data-rm]', t).forEach(function (b) { b.onclick = function () { b.classList.add('waiting'); App.swr('watchList', function () { return api('watchRemove', { part: b.dataset.rm }); }, paint, { fresh: true, silent: true, onError: function (e) { b.classList.remove('waiting'); toast(e.message); } }); }; });
       }
       // shows the saved copy at once, then refreshes quietly (same as the other pages)
