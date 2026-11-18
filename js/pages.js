@@ -452,7 +452,7 @@
       }
       function issueGroups(list) {
         if (!list.length) return '<div class="card"><span class="muted">No issues.</span></div>';
-        var SRC = { transit: 'Transit', price: 'Price list', rack: 'Rack bin list', relay: 'Relay file' }, g = {}, order = [];
+        var SRC = { transit: 'Transit list', price: 'Price list', rack: 'Rack bin list' }, g = {}, order = [];
         list.forEach(function (i) { var k = (SRC[i.source] || i.source) + ' - ' + i.reason; if (!g[k]) { g[k] = []; order.push(k); } g[k].push(i); });
         return order.map(function (k) {
           return '<details class="card"><summary class="bold">' + esc(k) + ' <span class="chip warn">' + g[k].length + '</span></summary><div class="tscroll" style="margin-top:8px"><table class="dt"><thead><tr><th>Part</th><th>Row</th></tr></thead><tbody>' +
@@ -462,8 +462,8 @@
       function feedsTab(t, fresh) {
         if (!t.firstChild) t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminFeeds', function () { return Promise.all([api('adminFeedStatus'), api('adminFeedIssues')]); }, function (a) {
-          var nm = { transit: 'Transit', price: 'Price list', rack: 'Rack bin list', relay: 'Relay file' };
-          t.innerHTML = '<div class="row" style="margin-bottom:10px"><button class="btn pri" id="fr">Refresh now</button><span class="muted small" id="frm"></span></div>' + a[0].meta.map(function (m) { return '<div class="card"><div class="row between"><div class="bold">' + nm[m.source] + '</div><span class="chip ' + (m.status === 'ok' ? 'ok' : 'warn') + '">' + esc(m.status) + '</span></div><div class="small muted">Last update ' + esc(m.updatedAt ? stamp(Number(m.updatedAt)) : 'never') + (m.rows ? ' · ' + m.rows + ' rows' : '') + (m.message ? ' · ' + esc(m.message) : '') + '</div></div>'; }).join('') +
+          var nm = { transit: 'Transit list', price: 'Price list', rack: 'Rack bin list' }, rl = a[0].meta.filter(function (m) { return m.source === 'relay'; })[0];
+          t.innerHTML = '<div class="row" style="margin-bottom:10px"><button class="btn pri" id="fr">Refresh now</button><span class="muted small" id="frm"></span></div>' + (rl && rl.status !== 'ok' ? '<div class="card bad">Transit and price list data cannot be reached right now.' + (rl.message ? ' ' + esc(rl.message) : '') + '</div>' : '') + a[0].meta.filter(function (m) { return m.source !== 'relay'; }).map(function (m) { return '<div class="card"><div class="row between"><div class="bold">' + nm[m.source] + '</div><span class="chip ' + (m.status === 'ok' ? 'ok' : 'warn') + '">' + esc(m.status) + '</span></div><div class="small muted">List last changed ' + esc(m.updatedAt ? stamp(Number(m.updatedAt)) : 'never') + (m.rows ? ' · ' + m.rows + ' rows' : '') + (m.message ? ' · ' + esc(m.message) : '') + '</div></div>'; }).join('') +
             '<h3>Feed issues (' + a[1].issues.length + ')</h3>' + issueGroups(a[1].issues);
           $('#fr').onclick = function () { busy($('#fr'), true, 'Refreshing…'); api('refreshTransit').then(function () { return App.refreshLists(); }).then(function () { feedsTab(t, true); }).catch(function (e) { toast(e.message); busy($('#fr'), false); }); };
         }, fresh);
