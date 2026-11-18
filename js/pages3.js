@@ -113,12 +113,12 @@
         var my = mark;
         return App.swr('orderStatus:' + my, function () { return api('orderStatus', { mark: my }); }, function (d) { if (my !== mark || !$('#sBody')) return; st = d; App.keepState($('#sBody'), function () { paintStatus(d); }); }, { fresh: fresh }).catch(function (e) { if ($('#sBody')) $('#sBody').innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
-      function lineRow(l, sel) {
+      function lineRow(l, sel, tr) {
         return '<div class="item">' + (sel ? '<input type="checkbox" data-k="' + esc(l.key) + '" checked>' : '') + '<div class="grow"><div><span class="bold mono">' + esc(l.part) + '</span> <span class="muted">× ' + esc(l.qty) + '</span></div><div class="small muted">' + esc(l.desc) + '</div>' +
-          '<div class="small muted">Invoice ' + esc(C.inv4(l.invoice)) + ' · LR ' + esc(l.lr) + (l.lrDate ? ' (' + esc(C.fmtDay(l.lrDate)) + ')' : '') + ' · ' + esc(l.pso) + (l.loc ? ' · ' + esc(l.loc) : '') + (l.batch ? ' · ' + esc(l.batch) : '') + '</div>' +
+          ((tr && l.lrDate) ? '<div class="small muted">Expected ' + esc(C.fmtDay(C.expectedDate(l.lrDate))) + '</div>' : (l.batch ? '<div class="small muted">' + esc(l.batch) + '</div>' : '')) +
           (l.early ? '<div class="small" style="color:var(--warn)">GRN\'d early on ' + esc(C.fmtDay(l.grnDate)) + ', may have been sold, pick from location or reorder.</div>' : '') + '</div></div>';
       }
-      function section(title, arr, cls, sel) { return '<h3>' + esc(title) + ' <span class="chip ' + (cls || '') + '">' + arr.length + '</span></h3><div class="card">' + (arr.length ? '<div class="list">' + arr.map(function (l) { return lineRow(l, sel); }).join('') + '</div>' : '<span class="muted">None.</span>') + '</div>'; }
+      function section(title, arr, cls, sel) { return '<h3>' + esc(title) + ' <span class="chip ' + (cls || '') + '">' + arr.length + '</span></h3><div class="card">' + (arr.length ? '<div class="list">' + arr.map(function (l) { return lineRow(l, sel, title === 'In transit'); }).join('') + '</div>' : '<span class="muted">None.</span>') + '</div>'; }
       function paintStatus(d) {
         var canPrint = App.can('printPacking'), html = '<div class="card"><div class="row between"><div><div class="bold" style="font-size:20px">' + esc(d.mark) + '</div><div class="muted small">' + esc(d.party || '') + '</div></div><div class="right"><div class="small muted">Ready to pack</div><div class="bold" style="font-size:20px">₹ ' + inr(d.ready) + '</div></div></div>' +
           '<div class="row" style="margin-top:10px">' + (canPrint ? '<button class="btn pri" id="pPrint"' + (d.awaiting.length ? '' : ' disabled') + '>Print packing sheet</button>' : '') + '<button class="btn" id="pXl">Download Excel</button></div></div>';
