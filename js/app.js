@@ -496,7 +496,8 @@
   function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
     q = q.replace(/[ \t]+/g, '');
-    if ((!anyone && !App.can('searchDockets')) || !App.open() || !/^[0-9]{3,}$/.test(q) || !App.lists.lrIdx) return out;
+    var full = anyone || App.can('searchDockets');
+    if ((!full && !App.can('docketGrn')) || !App.open() || !/^[0-9]{3,}$/.test(q) || !App.lists.lrIdx) return out;
     var st = {}; try { var c = JSON.parse(ls(cacheKey('openDockets')) || 'null'); if (c) c.d.dockets.forEach(function (x) { st[x.lr] = x.status; }); } catch (e) { /* none */ }
     function scan(map, key, list, mk) {
       var starts = [], inside = [];
@@ -504,7 +505,7 @@
       starts.concat(inside).slice(0, 8).forEach(function (v) { list.push(mk(v)); });
     }
     scan(App.lists.lrIdx, 'lr', out.dockets, function (v) { return { lr: v.lr, lines: v.lines, status: st[v.lr] || 'In transit', lrDate: v.lrDate }; });
-    scan(App.lists.invIdx, 'invoice', out.invoices, function (v) { return { invoice: v.invoice, lr: v.lr, lines: v.lines, status: st[v.lr] || 'In transit' }; });
+    if (full) scan(App.lists.invIdx, 'invoice', out.invoices, function (v) { return { invoice: v.invoice, lr: v.lr, lines: v.lines, status: st[v.lr] || 'In transit' }; });
     return out;
   }
   App.docketSuggestions = function (q) { return docketSuggestions(q, true); };
@@ -523,7 +524,7 @@
       var ds = docketSuggestions(q), partsHtml = html, dkHtml = '';
       if (ds.dockets.length) dkHtml += '<h3>Dockets</h3><div class="list">' + ds.dockets.map(function (d) { return '<div class="item click" data-dk="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + (d.lrDate ? ' · LR date ' + esc(C.fmtDay(d.lrDate)) : '') + '</div></div><span class="chip">' + esc(d.status) + '</span></div>'; }).join('') + '</div>';
       if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-dk="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? '<span class="chip">' + esc(d.status) + '</span>' : '') + '</div>'; }).join('') + '</div>';
-      if (App.can('searchDockets') && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search everything, including finished and archived dockets.</p>';
+      if ((App.can('searchDockets') || App.can('docketGrn')) && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search everything, including finished and archived dockets.</p>';
       html = dkHtml + partsHtml;
       res.innerHTML = html;
       bindRes();
@@ -532,7 +533,7 @@
       var exact = App.lists.price.has(q.toUpperCase()) ? q.toUpperCase() : (App.lists.price.has(q) ? q : '');
       var kinds = [];
       if (exact) kinds.push({ kind: 'part', part: exact, label: 'Part ' + exact });
-      if ((App.can('searchDockets') || App.can('boxScan')) && App.open()) {
+      if ((App.can('searchDockets') || App.can('docketGrn') || App.can('boxScan')) && App.open()) {
         res.innerHTML += '<p class="muted"><span class="spinner"></span> Searching…</p>';
         api('search', { q: q }).then(function (d) {
           kinds = kinds.concat(d.results);

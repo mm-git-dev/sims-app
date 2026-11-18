@@ -344,9 +344,9 @@ var SIMS_CORE = (function () {
   var PERM_INFO = {
     partBasic: 'See a part\'s number, description and MRP. Always on.',
     partLocation: 'On part scan, also see its rack location and the transit lines coming for it.',
-    docketGrn: 'Enter dockets, print and reprint Docket GRN sheets.',
+    docketGrn: 'Enter dockets, print and reprint Docket GRN sheets. Also lets the user find a docket by its LR number in Home search.',
     searchParts: 'Search by part number.',
-    searchDockets: 'Search by docket (LR), invoice or case number.',
+    searchDockets: 'Search by invoice number or case number as well (finding a docket by LR number needs only Docket GRN).',
     boxScan: 'See what is inside a box (scan a case number).',
     combinedGrn: 'Print combined rack sheets, add dockets not yet printed, combine by scanning.',
     pendingItems: 'See the Pending Items list (missing remarks, PODs, sheets).',
