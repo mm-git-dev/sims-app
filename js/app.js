@@ -401,8 +401,9 @@
   function refreshMenu() {
     var th = document.documentElement.dataset.theme;
     $('#menu').innerHTML = menuItems().map(function (i) { return '<a class="nav" data-r="' + i.k + '" href="' + i.h + '">' + esc(i.t) + '</a>'; }).join('') +
-      '<div class="sep"></div><button class="nav" id="themeBtn">Theme: ' + (th === 'light' ? 'Light' : 'Pitch Black') + '</button>';
+      '<div class="sep"></div><button class="nav" id="themeBtn">Theme: ' + (th === 'light' ? 'Light' : 'Dark') + '</button><button class="nav" id="logoutBtn">Log out</button>';
     $('#themeBtn').onclick = function () { setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true); refreshMenu(); };
+    $('#logoutBtn').onclick = function () { closeDrawer(); labelModal(); };
     $('#who').textContent = App.who();
     $$('#side a.nav').forEach(function (a) { a.classList.toggle('on', a.dataset.r === menuKey(App.page)); });
     $$('#side a.nav').forEach(function (a) { a.addEventListener('click', closeDrawer); });

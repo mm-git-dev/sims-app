@@ -189,12 +189,13 @@ var SIMS_CORE = (function () {
       return { status: 'held', reason: 'The new copy has ' + Math.round((1 - body.length / prevCount) * 100) + '% fewer rows than the last one.', rows: [], bad: [] };
     }
     var good = [], bad = [], colFails = {};
-    function fail(i, col, why) { bad.push({ row: i + 2, reason: why }); colFails[col] = (colFails[col] || 0) + 1; }
+    var curPart = '';
+    function fail(i, col, why) { bad.push({ row: i + 2, reason: why, part: curPart }); colFails[col] = (colFails[col] || 0) + 1; }
     var seen = {};
     body.forEach(function (r, i) {
-      var o, why;
+      var o, why; curPart = '';
       if (kind === 'transit') {
-        o = { invoice: txt(r[0]), part: partNo(r[1]), desc: txt(r[2]), qty: r[3], feedPrice: r[4], lr: txt(r[5]), lrDateRaw: r[6], rack: txt(r[7]), bin: txt(r[8]), po: txt(r[9]) };
+        o = { invoice: txt(r[0]), part: partNo(r[1]), desc: txt(r[2]), qty: r[3], feedPrice: r[4], lr: txt(r[5]), lrDateRaw: r[6], rack: txt(r[7]), bin: txt(r[8]), po: txt(r[9]) }; curPart = o.part;
         if (!o.part) return fail(i, 'Part No.', 'Part number empty');
         if (!o.invoice) return fail(i, 'Invoice No.', 'Invoice number empty');
         if (!isWhole(r[3]) || Number(r[3]) <= 0) return fail(i, 'Qty', 'Qty is not a whole number');
@@ -205,15 +206,15 @@ var SIMS_CORE = (function () {
         o.qty = Number(r[3]); o.feedPrice = Number(r[4]); o.lrDate = d;
         o.lr = o.lr.replace(/\s+/g, '');
       } else if (kind === 'price') {
-        o = { part: partNo(r[0]), desc: txt(r[1]), tax: Number(r[3]), ndp: Number(r[4]), mrp: Number(r[5]) };
+        o = { part: partNo(r[0]), desc: txt(r[1]), tax: Number(r[3]), ndp: Number(r[4]), mrp: Number(r[5]) }; curPart = o.part;
         if (!o.part) return fail(i, 'Part No', 'Part number empty');
         if (!isNum(r[4]) || !isNum(r[5])) return fail(i, 'NDP', 'NDP or MRP not numeric');
         if (o.mrp < o.ndp) return fail(i, 'MRP', 'MRP lower than NDP');
         if (TAXES.indexOf(o.tax) < 0) return fail(i, 'Tax', 'Tax not 5/12/18/28');
       } else {
-        o = { part: partNo(r[0]), rack: txt(r[1]), bin: txt(r[2]) };
+        o = { part: partNo(r[0]), rack: txt(r[1]), bin: txt(r[2]) }; curPart = o.part;
         if (!o.part) return fail(i, 'Part No', 'Part number empty');
-        if (seen[o.part]) { bad.push({ row: i + 2, reason: 'Duplicate part (first row used)', info: true }); return; }
+        if (seen[o.part]) { bad.push({ row: i + 2, reason: 'Duplicate part (first row used)', part: o.part, info: true }); return; }
         seen[o.part] = 1;
       }
       good.push(o);

@@ -61,7 +61,9 @@
       var st = d.status === 'removed' ? '<span class="chip warn">POD removed from Drive (stored offline)</span>' : d.status === 'queued' ? '<span class="chip warn">Saved temporarily</span>' : '';
       return '<div class="item"><div class="grow"><div class="bold">' + esc(d.type) + '</div><div class="small muted">' + esc(stamp(d.at)) + ' · ' + esc(d.by + (d.label ? ' (' + d.label + ')' : '')) + (d.note ? ' · ' + esc(d.note) : '') + '</div>' + st + '</div>' + (d.status === 'removed' ? '' : '<button class="btn" data-vd="' + esc(d.id) + '">View</button>') + '</div>';
     }).join('') + '</div>';
-    var types = App.docTypesAllowed();
+    var types = App.docTypesAllowed(), have = {}; docs.forEach(function (d) { have[d.type] = 1; });
+    // Later POD / Later receipt only make sense once the POD and the claim sheet are already uploaded
+    if (!(have['POD'] && have['Claim sheet'])) types = types.filter(function (t) { return t !== 'Later POD' && t !== 'Later receipt sheet'; });
     if (types.length) html += '<div style="margin-top:10px"><button class="btn" id="addDoc">Add document</button></div>';
     html += '</div>';
     if (k.short > 0) {
@@ -191,7 +193,7 @@
           view.innerHTML = '<div class="card"><h2 style="margin-top:0">Add a missed claim</h2><div class="muted small">Short quantities only. It shows on every incoming lot of this part until cleared.</div>' +
             '<label class="f">Part number</label><input type="text" id="mPart" autocapitalize="characters" autocomplete="off"><div class="small muted" id="mDesc"></div><label class="f">Quantity short</label><input type="number" id="mQty" min="1" inputmode="numeric">' +
             '<label class="f">Original docket (optional)</label><input type="text" id="mLr" inputmode="numeric"><label class="f">Note (optional)</label><input type="text" id="mNote" maxlength="200"><button class="btn pri" id="mAdd" style="margin-top:12px">Add</button></div>' +
-            '<label class="item"><input type="checkbox" id="mAll"' + (all ? ' checked' : '') + '><span>Show cleared too</span></label>' +
+            '<label class="item"><input type="checkbox" id="mAll"' + (all ? ' checked' : '') + '><span>Show cleared too</span></label>' + (all && d.items.some(function (x) { return x.status !== 'open'; }) ? '<div style="margin:8px 0"><button class="btn bad" id="mClr">Delete all cleared claims</button></div>' : '') +
             (d.items.length ? d.items.map(function (x) {
               var left = x.qty - x.raised;
               return '<div class="card"><div class="row between"><div><div class="bold mono" style="font-size:19px">' + esc(x.part) + '</div><div class="muted">' + esc(x.desc) + '</div></div><span class="chip ' + (x.status === 'open' ? 'warn' : 'ok') + '">' + (x.status === 'open' ? 'Claim pending: ' + left : 'Cleared') + '</span></div>' +
@@ -202,6 +204,7 @@
           var pi = $('#mPart');
           pi.oninput = function () { var p = App.lists.price.get(pi.value.trim().toUpperCase()); $('#mDesc').textContent = p ? p.desc : (pi.value.trim() ? 'Not in the price list' : ''); };
           $('#mAll').onchange = function () { all = this.checked; load(); };
+          var mc = $('#mClr'); if (mc) mc.onclick = function () { App.confirm('Permanently remove every cleared claim and its history? This cannot be undone. Claims still pending are kept.', 'Remove', 'Cancel').then(function (y) { if (!y) return; api('missedClearDone', {}).then(function (r) { toast(r.removed + ' removed.'); load(true); }).catch(function (e) { toast(e.message, 4000); }); }); };
           $('#mAdd').onclick = function () {
             busy($('#mAdd'), true, 'Adding…');
             api('missedAdd', { part: pi.value, qty: $('#mQty').value, lr: $('#mLr').value, note: $('#mNote').value }).then(function () { toast('Added.'); load(true); }).catch(function (e) { busy($('#mAdd'), false); toast(e.message, 4000); });
@@ -209,9 +212,9 @@
           $$('[data-r]', view).forEach(function (b) {
             b.onclick = function () {
               var left = +b.dataset.left;
-              App.modal('<h2 style="margin-top:0">Claim raised</h2><label class="f">Quantity raised (up to ' + left + ')</label><input type="number" id="rq" min="1" max="' + left + '" value="' + left + '"><div class="small muted" style="margin-top:6px">A part raised for 2 of 4 leaves 2 pending.</div><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-n>Cancel</button><button class="btn pri" data-y>Save</button></div>', function (m, close) {
+              App.modal('<h2 style="margin-top:0">Claim raised</h2><label class="f">Quantity raised (up to ' + left + ')</label><input type="number" id="rq" min="1" max="' + left + '" value="' + left + '"><label class="f">Note (optional)</label><input type="text" id="rn" maxlength="200" placeholder="For example claim number or date raised"><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-n>Cancel</button><button class="btn pri" data-y>Save</button></div>', function (m, close) {
                 $('[data-n]', m).onclick = close;
-                $('[data-y]', m).onclick = function () { api('missedRaise', { id: b.dataset.r, qty: $('#rq', m).value }).then(function () { close(); toast('Saved.'); load(true); }).catch(function (e) { toast(e.message, 4000); }); };
+                $('[data-y]', m).onclick = function () { api('missedRaise', { id: b.dataset.r, qty: $('#rq', m).value, note: $('#rn', m).value }).then(function () { close(); toast('Saved.'); load(true); }).catch(function (e) { toast(e.message, 4000); }); };
               });
             };
           });
