@@ -104,8 +104,8 @@ var SIMSPrint = (function () {
       },
       rowHtml: function (it) {
         var l = it.l;
-        return '<tr' + (l.party ? ' class="party"' : '') + '><td class="fit pn">' + esc(l.part) + '</td>' +
-          '<td class="desc fit">' + esc(l.desc) + (l.note ? '<span class="recomb">' + esc(l.note) + '</span>' : '') + '</td><td class="c fit">' + esc(l.qty) + '</td>' +
+        return '<tr><td class="fit pn">' + esc(l.part) + '</td>' +
+          '<td class="desc fit">' + esc(l.desc) + '</td><td class="c fit">' + esc(l.qty) + '</td>' +
           '<td class="c fit">' + (l.party ? '<s>' + esc(l.loc) + '</s>' : esc(l.loc)) + '</td><td class="c">' + (l.party ? esc(l.mark) : '') + (l.party && l.grn ? ' ' : '') + (l.grn ? '<span class="grnnote">' + esc(l.grn) + '</span>' : '') + '</td></tr>';
       }
     });
