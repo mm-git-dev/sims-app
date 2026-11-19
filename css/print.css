@@ -8,52 +8,56 @@
 .sheet-page * { color: #000 !important; background: transparent; box-sizing: border-box; }
 
 .sp-head { position: absolute; left: 10mm; right: 10mm; top: 10mm; }
-.sp-foot { position: absolute; left: 10mm; right: 10mm; bottom: 8mm; font-size: 8pt; font-family: 'Barlow', Arial, sans-serif; font-weight: 500; display: flex; justify-content: space-between; line-height: 1; }
+.sp-hl { padding-left: 10.6mm; }
+.sp-foot { position: absolute; left: 10mm; right: 10mm; bottom: 8mm; font-size: 8.25pt; font-family: 'Barlow', Arial, sans-serif; font-weight: 500; display: flex; justify-content: space-between; line-height: 1; }
 .sp-table-wrap { position: absolute; left: 10mm; right: 10mm; }
 
-.sp-tag { font-size: 9pt; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+.sp-tag { font-size: 9pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
 .sp-reprint { display: inline-block; margin-left: 4mm; border: 1px solid #000; padding: 0 1.6mm; font-size: 9pt; font-weight: 700; letter-spacing: .1em; }
-.sp-lr { font-size: 16.5pt; font-weight: 600; line-height: 1.1; margin-top: .6mm; }
-.sp-sub { font-size: 9pt; margin-top: .8mm; }
-.sp-remark { margin-top: 1.4mm; font-size: 10.5pt; font-weight: 700; text-transform: uppercase; }
-.sp-remark .tag { display: inline-block; border: 1px solid #000; font-size: 7.5pt; font-weight: 600; letter-spacing: .08em; padding: 0 1.2mm; margin-right: 2mm; vertical-align: 1px; }
-.sp-check { margin-top: 1.6mm; font-size: 9.5pt; display: flex; align-items: flex-end; }
-.sp-check .line { display: inline-block; width: 62mm; border-bottom: 1px solid #000; margin-left: 2mm; height: 3.6mm; }
-.sp-right { position: absolute; right: 0; top: 0; display: flex; gap: 2mm; }
-.sp-qr { width: 23mm; height: 23mm; }
-.sp-qr svg { width: 23mm; height: 23mm; display: block; }
-.sp-boxes { width: 23mm; height: 23mm; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.sp-boxes .n { font-size: 32pt; font-weight: 400; line-height: 1; }
-.sp-boxes .l { font-size: 8pt; letter-spacing: .16em; text-transform: uppercase; font-weight: 500; margin-top: 1mm; }
-.sp-rack-title { font-weight: 700; line-height: 1; margin-top: 1.4mm; text-transform: uppercase; }
-.sp-rack-title .big { font-size: 24pt; } .sp-rack-title .small { font-size: 14pt; }
-.sp-batchbox { position: absolute; right: 0; top: 0; border: 1px solid #000; padding: 1.4mm 4mm; text-align: center; min-width: 38mm; }
-.sp-batchbox .k { font-size: 7.5pt; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
-.sp-batchbox .v { font-size: 12pt; font-weight: 700; margin-top: .6mm; }
-.sp-party { font-size: 28pt; font-weight: 700; line-height: 1; margin-top: 1mm; }
+.sp-lr { font-family: 'Barlow Condensed', 'Barlow', Arial, sans-serif; font-size: 16.5pt; font-weight: 500; line-height: 1.1; margin-top: 1mm; }
+.sp-sub { font-size: 9pt; margin-top: 1mm; line-height: 1.15; }
+.sp-remark { margin-top: 1mm; font-size: 11.25pt; font-weight: 700; text-transform: uppercase; }
+.sp-remark .tag { display: inline-block; border: 1px solid #000; font-size: 7.5pt; font-weight: 700; letter-spacing: 1px; padding: 1px 6px; margin-right: 8px; vertical-align: 1px; }
+.sp-check { margin-top: 1mm; font-size: 9.75pt; display: flex; align-items: flex-end; }
+.sp-check .line { display: inline-block; width: 61mm; border-bottom: 1px solid #000; margin-left: 2mm; height: 3.6mm; }
+.sp-right { position: absolute; right: 0; top: 0; bottom: var(--gap, 0mm); display: flex; gap: 4.2mm; align-items: center; }
+.sp-qr { width: 23.3mm; height: 23.3mm; }
+.sp-qr svg { width: 23.3mm; height: 23.3mm; display: block; }
+.sp-boxes { width: 23.3mm; height: 23.3mm; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sp-boxes .n { font-family: 'Barlow Condensed', 'Barlow', Arial, sans-serif; font-size: 55.5pt; font-weight: 400; line-height: .85; }
+.sp-boxes .l { font-size: 7.5pt; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; margin-top: 4px; }
+.sp-rack-title { font-weight: 500; line-height: 1; margin-top: 1mm; text-transform: uppercase; }
+.sp-rack-title .big { font-size: 21pt; } .sp-rack-title .small { font-size: 14pt; }
+.sp-batchbox { position: absolute; right: 0; top: 0; border: 1px solid #000; padding: 4px 12px; text-align: center; }
+.sp-batchbox .k { font-size: 7.5pt; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+.sp-batchbox .v { font-size: 16.5pt; font-weight: 600; margin-top: .6mm; line-height: 1.1; }
+.sp-party { font-size: 30pt; font-weight: 700; line-height: 1; margin-top: 1mm; }
 
 table.sp-t { width: 100%; border-collapse: collapse; table-layout: fixed; }
-table.sp-t th, table.sp-t td { border: 1px solid #000; padding: 0 1.2mm; height: 6mm; overflow: hidden; white-space: nowrap; line-height: 1; vertical-align: middle; }
-table.sp-t th { font-size: 10pt; font-weight: 500; text-transform: uppercase; text-align: center; }
+table.sp-t th, table.sp-t td { border: 1px solid #000; padding: 0 1.3mm; height: 5.7mm; overflow: hidden; white-space: nowrap; line-height: 1; vertical-align: middle; }
+table.sp-t th { height: 6mm; font-size: 10pt; font-weight: 500; text-transform: uppercase; text-align: center; }
 table.sp-t td { font-size: 10pt; position: relative; }
-table.sp-t tr.dbl td { height: 12mm; }
+table.sp-t tr.dbl td { height: 11.6mm; }
 table.sp-t td.c { text-align: center; }
 table.sp-t td.desc { font-size: 8.5pt; text-overflow: ellipsis; }
 table.sp-t td.inv { font-size: 8pt; text-align: center; }
 table.sp-t tr.party td { font-weight: 700; }
 table.sp-t s { text-decoration: line-through; }
+table.sp-t tr.party td s { font-weight: 500; }
 .tri { display: inline-block; width: 0; height: 0; border-left: 1.7mm solid #000; border-top: 1.1mm solid transparent; border-bottom: 1.1mm solid transparent; margin-right: 1mm; vertical-align: middle; }
 table.sp-t td.pn { overflow: visible; }
-.claimdot { position: absolute; left: -5.8mm; top: .8mm; width: 4.4mm; height: 4.4mm; border: 1px solid #000; border-radius: 50%; font-size: 8pt; font-weight: 600; text-align: center; line-height: 4.1mm; background: #fff; }
+.claimdot { position: absolute; left: -5.8mm; top: .6mm; width: 4.4mm; height: 4.4mm; border: 1px solid #000; border-radius: 50%; font-size: 8pt; font-weight: 600; text-align: center; line-height: 4.1mm; background: #fff; }
 .early { display: block; font-size: 8pt; font-weight: 500; white-space: normal; line-height: 1.1; margin-top: .8mm; }
 .recomb { font-size: 7pt; display: block; line-height: 1; }
 
 .sp-trailer { position: absolute; left: 10mm; right: 10mm; }
-.sp-grnremark { text-align: center; font-weight: 700; font-size: 11pt; text-transform: uppercase; }
+.sp-grnremark { text-align: center; font-weight: 700; font-size: 10.5pt; line-height: 1.2; text-transform: uppercase; }
 table.sp-inv { width: 71mm; margin: 2mm auto 0; border-collapse: collapse; table-layout: fixed; }
-table.sp-inv th { font-size: 9pt; font-weight: 500; border: 1px solid #000; height: 5.5mm; text-transform: uppercase; }
-table.sp-inv td { font-size: 8.75pt; border: 1px solid #000; height: 5.5mm; padding: 0 1.2mm; white-space: nowrap; }
-.sp-packed { font-size: 11pt; display: flex; gap: 14mm; margin-top: 8mm; }
+table.sp-inv th { font-size: 9pt; font-weight: 500; border: 1px solid #000; height: 6mm; text-transform: uppercase; }
+table.sp-inv td { font-size: 8.75pt; border: 1px solid #000; height: 5.7mm; padding: 0 1.3mm; text-align: center; white-space: nowrap; }
+.sp-packed { font-size: 9.75pt; display: flex; align-items: flex-end; gap: 10.6mm; }
+.sp-packed .w { display: inline-block; border-bottom: 1px solid #000; height: 3.6mm; margin-left: 2mm; vertical-align: bottom; }
+.sp-packed span { display: flex; align-items: flex-end; }
 
 @media print {
   @page { size: A4; margin: 0; }

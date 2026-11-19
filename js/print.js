@@ -1,7 +1,7 @@
 /* Print engine: builds A4 pages for Docket GRN sheets, Combined Rack Sheets and Packing sheets (brief section 6). */
 var SIMSPrint = (function () {
   'use strict';
-  var C = SIMS_CORE, ROW = 6, BOTTOM = 279, LATER_TOP = 22;
+  var C = SIMS_CORE, ROW = 5.7, HROW = 6, EARLY = 11.6, BOTTOM = 279, LATER_TOP = 20.6;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -37,18 +37,18 @@ var SIMSPrint = (function () {
 
   /** Generic sheet assembly. cfg: {head1H, headHtml(), widths, headings, rowHtml(item), items, trailerH, trailerHtml(top), footerLeft} */
   function build(cfg) {
-    var first = BOTTOM - (10 + cfg.head1H) - ROW, later = BOTTOM - LATER_TOP - ROW;
+    var first = BOTTOM - (10 + cfg.head1H) - HROW, later = BOTTOM - LATER_TOP - HROW;
     var pages = paginate(cfg.items, first, later, cfg.trailerH), total = pages.length, html = [];
     pages.forEach(function (pg, i) {
       var top = i === 0 ? 10 + cfg.head1H : LATER_TOP, h = '<div class="sheet-page">';
-      if (i === 0) h += '<div class="sp-head" style="height:' + cfg.head1H + 'mm">' + cfg.headHtml() + '</div>';
+      if (i === 0) h += '<div class="sp-head" style="height:' + cfg.head1H + 'mm;--gap:' + (cfg.gap || 0) + 'mm">' + cfg.headHtml() + '</div>';
       if (!pg.trailerOnly) {
         h += '<div class="sp-table-wrap" style="top:' + top + 'mm"><table class="sp-t">' + colgroup(cfg.widths) + '<thead><tr>' +
           cfg.headings.map(function (t) { return '<th>' + t + '</th>'; }).join('') + '</tr></thead><tbody>' +
           pg.items.map(cfg.rowHtml).join('') + '</tbody></table></div>';
       }
       if (pg.trailer) {
-        var ttop = pg.trailerOnly ? LATER_TOP : top + ROW + pg.used + 6;
+        var ttop = pg.trailerOnly ? LATER_TOP : top + HROW + pg.used + (cfg.trailerGap == null ? 6 : cfg.trailerGap);
         h += '<div class="sp-trailer" style="top:' + ttop + 'mm">' + cfg.trailerHtml() + '</div>';
       }
       h += foot(cfg.footerLeft, i + 1, total) + '</div>';
@@ -62,10 +62,10 @@ var SIMSPrint = (function () {
     var items = C.sortByPart(d.lines).map(function (l) { return { l: l, h: ROW }; });
     var inv = d.invoices || [];
     return build({
-      head1H: 35, widths: [14, 41, 7, 11, 6, 21], headings: ['Part No', 'Description', 'Qty', 'Location', 'Inv', 'Check'],
+      gap: 1.6, head1H: 27.8, widths: [14, 41, 7, 11, 6, 21], headings: ['Part No', 'Description', 'Qty', 'Location', 'Inv', 'Check'],
       items: items, footerLeft: 'SIMS · Docket ' + d.lr + ' (' + d.boxes + ' boxes)',
       headHtml: function () {
-        return '<div style="padding-left:0"><div class="sp-tag">Docket GRN Sheet' + (d.reprint ? '<span class="sp-reprint">REPRINT</span>' : '') + '</div>' +
+        return '<div class="sp-hl"><div class="sp-tag">Docket GRN Sheet' + (d.reprint ? '<span class="sp-reprint">REPRINT</span>' : '') + '</div>' +
           '<div class="sp-lr">' + esc(d.lr) + '</div>' +
           '<div class="sp-sub">LR date ' + esc(d.lrDate ? C.fmtDay(d.lrDate) : '—') + ' · Arrived ' + esc(C.fmtStamp(d.arrivedAt)) + ' · Printed by ' + esc(d.printedBy) + '</div>' +
           '<div class="sp-remark"><span class="tag">REMARK</span>' + esc(d.remark) + '</div>' +
@@ -79,7 +79,7 @@ var SIMSPrint = (function () {
           '<td class="desc fit">' + esc(l.desc) + '</td><td class="c fit">' + esc(l.qty) + '</td><td class="c fit">' + locHtml(l) + '</td>' +
           '<td class="inv fit">' + esc(l.inv) + '</td><td class="c">' + (l.grn ? '<span class="grnnote">' + esc(l.grn) + '</span>' : '') + '</td></tr>';
       },
-      trailerH: 6 + 6 + 2 + 5.5 * (inv.length + 1) + 1,
+      trailerGap: 3.2, trailerH: 3.2 + 4.6 + 2 + HROW + ROW * inv.length + 1,
       trailerHtml: function () {
         return '<div class="sp-grnremark">GRN REMARK: ' + esc(d.remark) + '</div><table class="sp-inv"><colgroup><col style="width:62%"><col style="width:38%"></colgroup>' +
           '<thead><tr><th>Invoice No</th><th>GRN No</th></tr></thead><tbody>' + inv.map(function (i) { return '<tr><td>' + esc(i) + '</td><td></td></tr>'; }).join('') + '</tbody></table>';
@@ -94,12 +94,12 @@ var SIMSPrint = (function () {
   function rackSheet(s) {
     var items = s.lines.map(function (l) { return { l: l, h: ROW }; });
     return build({
-      head1H: 29, widths: [14, 47, 7, 11, 21], headings: ['Part No', 'Description', 'Qty', 'Location', 'Check'],
+      gap: 5.6, head1H: 22.35, widths: [14, 47, 7, 11, 21], headings: ['Part No', 'Description', 'Qty', 'Location', 'Check'],
       items: items, footerLeft: 'SIMS · Batch ' + s.batch + ' · ' + s.title,
       headHtml: function () {
-        return '<div class="sp-tag">Combined Rack Sheet' + (s.reprint ? '<span class="sp-reprint">REPRINT</span>' : '') + '</div>' +
+        return '<div class="sp-hl"><div class="sp-tag">Combined Rack Sheet' + (s.reprint ? '<span class="sp-reprint">REPRINT</span>' : '') + '</div>' +
           '<div class="sp-rack-title">' + rackTitle(s.title) + '</div>' +
-          '<div class="sp-sub" style="margin-top:1.4mm">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + '</div>' +
+          '<div class="sp-sub">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + '</div></div>' +
           '<div class="sp-batchbox"><div class="k">Batch</div><div class="v">' + esc(s.batch) + '</div></div>';
       },
       rowHtml: function (it) {
@@ -113,24 +113,24 @@ var SIMSPrint = (function () {
 
   // ---------- Packing sheet (stage 3 uses this) ----------
   function packingSheet(s) {
-    var items = s.lines.map(function (l) { return { l: l, h: l.early ? ROW * 2 : ROW }; });
+    var items = s.lines.map(function (l) { return { l: l, h: l.early ? EARLY : ROW }; });
     return build({
-      head1H: 41, widths: [14, 39, 7, 8, 11, 21], headings: ['Part No', 'Description', 'Qty', 'MRP', 'Location', 'Check'],
+      gap: 3.7, head1H: 28.3, widths: [14, 39, 7, 8, 11, 21], headings: ['Part No', 'Description', 'Qty', 'MRP', 'Location', 'Check'],
       items: items, footerLeft: 'SIMS · ' + s.batch,
       headHtml: function () {
-        return '<div class="sp-tag">Packing Sheet' + (s.reprint ? '<span class="sp-reprint">REPRINT</span>' : '') + '</div><div class="sp-party">' + esc(s.mark) + '</div>' +
-          '<div class="sp-sub" style="margin-top:1.4mm">Prepared ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + '</div>' +
-          '<div class="sp-sub">' + s.lines.length + ' parts · Estimate amount ₹ ' + C.fmtINR(s.estimate) + '</div>' +
+        return '<div class="sp-hl"><div class="sp-tag">Packing Sheet' + (s.reprint ? '<span class="sp-reprint">REPRINT</span>' : '') + '</div><div class="sp-party">' + esc(s.mark) + '</div>' +
+          '<div class="sp-sub">Prepared ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + '</div>' +
+          '<div class="sp-sub">' + s.lines.length + ' parts · Estimate amount ₹ ' + C.fmtINR(s.estimate) + '</div></div>' +
           '<div class="sp-batchbox"><div class="k">Packing Batch</div><div class="v">' + esc(s.batch) + '</div></div>';
       },
       rowHtml: function (it) {
         var l = it.l;
         return '<tr' + (l.early ? ' class="dbl"' : '') + '><td class="fit pn">' + esc(l.part) + '</td><td class="desc fit">' + esc(l.desc) +
-          (l.early ? '<span class="early">! GRN\'d early ' + esc(l.earlyDate) + ' · pick from location or reorder</span>' : '') + '</td>' +
+          (l.early ? '<span class="early"><b>!</b> GRN\'d early ' + esc(l.earlyDate) + ' · pick from location or reorder</span>' : '') + '</td>' +
           '<td class="c fit">' + esc(l.qty) + '</td><td class="c fit">' + C.fmtINR(l.mrp) + '</td><td class="c fit">' + esc(l.loc) + '</td><td></td></tr>';
       },
-      trailerH: 6 + 6,
-      trailerHtml: function () { return '<div class="sp-packed"><span>Packed by: ________________</span><span>Boxes packed: ______</span></div>'; }
+      trailerGap: 5.8, trailerH: 5.8 + 6,
+      trailerHtml: function () { return '<div class="sp-packed"><span>Packed by:<i class="w" style="width:61mm"></i></span><span>Boxes packed:<i class="w" style="width:24mm"></i></span></div>'; }
     });
   }
 
@@ -143,7 +143,7 @@ var SIMSPrint = (function () {
       var guard = 0;
       while (td.scrollWidth > td.clientWidth + 0.5 && guard++ < 12) {
         if (size > min) { size = Math.max(min, size - 1); }
-        else if (!isDesc && size > 5) { size -= 0.5; }
+        else if (!isDesc && size > 6) { size -= 0.5; }
         else break;
         td.style.fontSize = size + 'pt';
       }
@@ -172,10 +172,10 @@ var SIMSPrint = (function () {
   function transitSheet(s) {
     var items = s.rows.map(function (l) { return { l: l, h: ROW }; });
     return build({
-      head1H: 28, widths: [14, 30, 6, 13, 13, 12, 12], headings: ['Part No', 'Description', 'Qty', 'Invoice', 'LR', 'LR date', 'Mark'],
+      gap: 0, head1H: 12.1, widths: [14, 30, 6, 13, 13, 12, 12], headings: ['Part No', 'Description', 'Qty', 'Invoice', 'LR', 'LR date', 'Mark'],
       items: items, footerLeft: 'SIMS · ' + s.title,
       headHtml: function () {
-        return '<div class="sp-tag">' + esc(s.title) + '</div><div class="sp-sub" style="margin-top:1.4mm">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + ' · ' + s.rows.length + ' lines · ! = overdue</div>';
+        return '<div class="sp-hl"><div class="sp-tag">' + esc(s.title) + '</div><div class="sp-sub">Printed ' + esc(C.fmtStamp(s.printedAt)) + ' by ' + esc(s.printedBy) + ' · ' + s.rows.length + ' lines · ! = overdue</div></div>';
       },
       rowHtml: function (it) {
         var l = it.l;
