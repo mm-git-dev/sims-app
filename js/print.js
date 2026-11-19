@@ -77,7 +77,7 @@ var SIMSPrint = (function () {
         var l = it.l;
         return '<tr' + (l.party ? ' class="party"' : '') + '><td class="fit pn">' + (l.claim ? '<span class="claimdot">' + esc(l.claim) + '</span>' : '') + (l.party ? '<span class="tri"></span>' : '') + esc(l.part) + '</td>' +
           '<td class="desc fit">' + esc(l.desc) + '</td><td class="c fit">' + esc(l.qty) + '</td><td class="c fit">' + locHtml(l) + '</td>' +
-          '<td class="inv fit">' + esc(l.inv) + '</td><td></td></tr>';
+          '<td class="inv fit">' + esc(l.inv) + '</td><td class="c">' + (l.grn ? '<span class="grnnote">' + esc(l.grn) + '</span>' : '') + '</td></tr>';
       },
       trailerH: 6 + 6 + 2 + 5.5 * (inv.length + 1) + 1,
       trailerHtml: function () {
@@ -106,7 +106,7 @@ var SIMSPrint = (function () {
         var l = it.l;
         return '<tr' + (l.party ? ' class="party"' : '') + '><td class="fit pn">' + esc(l.part) + '</td>' +
           '<td class="desc fit">' + esc(l.desc) + (l.note ? '<span class="recomb">' + esc(l.note) + '</span>' : '') + '</td><td class="c fit">' + esc(l.qty) + '</td>' +
-          '<td class="c fit">' + (l.party ? '<s>' + esc(l.loc) + '</s>' : esc(l.loc)) + '</td><td class="c">' + (l.party ? esc(l.mark) : '') + '</td></tr>';
+          '<td class="c fit">' + (l.party ? '<s>' + esc(l.loc) + '</s>' : esc(l.loc)) + '</td><td class="c">' + (l.party ? esc(l.mark) : '') + (l.party && l.grn ? ' ' : '') + (l.grn ? '<span class="grnnote">' + esc(l.grn) + '</span>' : '') + '</td></tr>';
       }
     });
   }

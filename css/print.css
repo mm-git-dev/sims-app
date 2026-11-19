@@ -61,3 +61,5 @@ table.sp-inv td { font-size: 8.75pt; border: 1px solid #000; height: 5.5mm; padd
   body > *:not(#printRoot) { display: none !important; }
   #printRoot { display: block !important; }
 }
+
+.grnnote { font-size: 8pt; font-weight: 500; white-space: nowrap; }
