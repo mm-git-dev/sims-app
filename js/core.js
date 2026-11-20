@@ -243,6 +243,19 @@ var SIMS_CORE = (function () {
   }
 
   /**
+   * The PPO (our own party order number) of a line. The company system may swap the PO to an MPO later; party orders are always tracked
+   * by the PPO. Returns the current PO if it is a PPO, else the latest PPO the line ever had, else ''.
+   */
+  function partyPo(l) {
+    if (/^PPO/.test(l.po)) return l.po;
+    var h = l.history || [];
+    for (var i = h.length - 1; i >= 0; i--) {
+      if (h[i].poChanged) { if (/^PPO/.test(h[i].to)) return h[i].to; if (/^PPO/.test(h[i].from)) return h[i].from; }
+    }
+    return '';
+  }
+
+  /**
    * prev: array of tracked lines {key, ..., grnDate: ms|null, history:[]}
    * rows: current good transit rows. today: ms (UTC midnight day).
    * Returns {lines, newCount, grnd:[keys], reopened:[keys]}
@@ -447,7 +460,7 @@ var SIMS_CORE = (function () {
     txt: txt, partNo: partNo, parseDate: parseDate, fmtDay: fmtDay, fmtStamp: fmtStamp, fmtBatchDate: fmtBatchDate,
     fmtINR: fmtINR, fmtLakh: fmtLakh, lineValue: lineValue, estimateAmount: estimateAmount,
     comparePart: comparePart, sortByPart: sortByPart, location: location, GROUP_TITLES: GROUP_TITLES,
-    partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, detectGrn: detectGrn,
+    partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, partyPo: partyPo, detectGrn: detectGrn,
     grnProgress: grnProgress, partySection: partySection, transitState: transitState, remarkText: remarkText, shortBoxes: shortBoxes, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
     PERMS: PERMS, PERM_INFO: PERM_INFO, allPerms: allPerms, can: can, officeOpen: officeOpen, canNow: canNow,
     expectedDate: expectedDate, isOverdue: isOverdue, parsePackingList: parsePackingList, inv4: inv4,

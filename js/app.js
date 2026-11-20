@@ -127,7 +127,7 @@
     var L = App.lists, pr = L.raw.price, rk = L.raw.rack, tr = L.raw.transit;
     L.price = new Map(); (pr || []).forEach(function (r) { L.price.set(r[0], { part: r[0], desc: r[1], mrp: r[2], ndp: r[3], tax: r[4] }); });
     L.rack = new Map(); (rk || []).forEach(function (r) { L.rack.set(r[0], [r[1], r[2]]); });
-    L.transitBy = new Map(); (tr || []).forEach(function (r) { var o = { invoice: r[0], part: r[1], desc: r[2], qty: r[3], lr: r[4], lrDate: r[5], po: r[6], rack: r[7], bin: r[8] }; if (!L.transitBy.has(o.part)) L.transitBy.set(o.part, []); L.transitBy.get(o.part).push(o); });
+    L.transitBy = new Map(); (tr || []).forEach(function (r) { var o = { invoice: r[0], part: r[1], desc: r[2], qty: r[3], lr: r[4], lrDate: r[5], po: r[6], rack: r[7], bin: r[8], ppo: r[9] || (/^PPO/.test(r[6]) ? r[6] : '') }; if (!L.transitBy.has(o.part)) L.transitBy.set(o.part, []); L.transitBy.get(o.part).push(o); });
     // docket and invoice numbers for as-you-type search (open transit lines only)
     // packing list: by case number (box scan) and by part (Box Finder)
     L.packByCase = null; L.packByPart = null;
@@ -684,7 +684,7 @@
         html += '<h3>In transit</h3>';
         if (!tr.length) html += '<div class="card muted">Nothing in transit for this part.</div>';
         else html += '<div class="card"><div class="list">' + tr.map(function (t) {
-          var mark = /^PPO/.test(t.po) ? (App.lists.marks[t.po] || '') : '', exp = C.expectedDate(t.lrDate);
+          var mark = t.ppo ? (App.lists.marks[t.ppo] || '') : '', exp = C.expectedDate(t.lrDate);
           return '<div class="item"><div class="grow"><div class="bold mono">' + (t.lr ? 'LR ' + esc(t.lr) : 'Not booked yet') + '</div><div class="small muted">Expected ' + (exp ? esc(C.fmtDay(exp)) : '—') + '</div></div>' +
             (mark ? '<span class="chip acc">' + esc(mark) + '</span>' : '') + '<div class="bold" style="font-size:20px">× ' + esc(t.qty) + '</div></div>';
         }).join('') + '</div></div>';

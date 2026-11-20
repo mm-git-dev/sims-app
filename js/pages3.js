@@ -154,7 +154,7 @@
       function rows() {
         var L = App.lists, tr = L.raw.transit || [], mk = L.marks || {}, price = L.price || new Map();
         return tr.map(function (r) {
-          var p = price.get(r[1]), lrDate = r[5] || null, state = C.transitState(lrDate, NOW), mark = /^PPO/.test(r[6]) ? (mk[r[6]] || '') : '';
+          var p = price.get(r[1]), lrDate = r[5] || null, state = C.transitState(lrDate, NOW), mark = mk[r[9] || (/^PPO/.test(r[6]) ? r[6] : '')] || '';
           return { invoice: r[0], part: r[1], desc: r[2], qty: r[3], lr: r[4], lrDate: lrDate, po: r[6], mark: mark, state: state, expected: lrDate ? lrDate + 8 * DAY : null, value: p && p.ndp ? r[3] * p.ndp * (1 + (p.tax || 0) / 100) : 0 };
         });
       }
