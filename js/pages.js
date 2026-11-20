@@ -433,19 +433,13 @@
         });
       }
       function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit', partWatch: 'Part Watch List: add parts to watch' }[p] || p; }
-      /** Office hours are typed on a 12-hour clock ("10 am", "7:30 pm") and stored as 24-hour HH:MM. */
+      /** Office hours use the browser's own time field (phone time picker, or typing). Its value is 24-hour HH:MM, which is what we store; the label beside it always reads 12-hour. */
       function show12(hm) { var p = String(hm || '').split(':'), h = +p[0] || 0, m = +p[1] || 0; return ((h % 12) || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h >= 12 ? 'PM' : 'AM'); }
-      function parse12(txt) {
-        var m = String(txt).trim().toLowerCase().replace(/\./g, '').match(/^(\d{1,2})(?:[:\s](\d{2}))?\s*(am|pm)$/);
-        if (!m) return null;
-        var h = +m[1], mi = m[2] === undefined ? 0 : +m[2];
-        if (h < 1 || h > 12 || mi > 59) return null;
-        h = h % 12 + (m[3] === 'pm' ? 12 : 0);
-        return (h < 10 ? '0' : '') + h + ':' + (mi < 10 ? '0' : '') + mi;
+      function timePick(id, hm) {
+        var v = /^\d{1,2}:\d{2}$/.test(String(hm)) ? (String(hm).length < 5 ? '0' + hm : hm) : '10:00';
+        return '<div class="row" style="flex-wrap:nowrap;align-items:center"><input type="time" id="' + id + '" value="' + esc(v) + '" step="300" style="flex:1"><b id="' + id + 'L" style="white-space:nowrap">' + esc(show12(v)) + '</b></div>';
       }
-      function timePick(id, hm) { return '<input type="text" id="' + id + '" value="' + esc(show12(hm)) + '" placeholder="10:00 AM" autocapitalize="characters" autocomplete="off" onblur="var v=this.value,t=window.SIMSparse12&&window.SIMSparse12(v);if(t)this.value=window.SIMSshow12(t)">'; }
-      window.SIMSparse12 = parse12; window.SIMSshow12 = show12;
-      function timeVal(id) { var v = parse12($('#' + id).value); if (!v) throw new Error('Type the time like 10:00 AM or 7 PM.'); return v; }
+      function timeVal(id) { var v = $('#' + id).value; if (!/^\d{2}:\d{2}$/.test(v)) throw new Error('Pick the opening and closing time.'); return v; }
       function settingsTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminSettings', function () { return api('adminSettings'); }, function (d) {
@@ -456,6 +450,7 @@
             '<h3>Orders</h3><label class="f">Order expiry (days)</label><input type="number" id="sX" value="' + esc(s.orderExpiryDays) + '"><h3>Scanning</h3><label class="f">Scan sounds</label><select id="sSnd"><option value="off">Off</option><option value="on">On</option></select>' +
             '<h3>Logins</h3><label class="item"><input type="checkbox" id="sAuto"' + (s.autoAccept === 'on' ? ' checked' : '') + '><span>Auto-accept logins (turn OFF at go-live)</span></label><h3>Approval requests</h3><div class="small muted" style="margin-bottom:6px">Where SIMS sends new login requests and Admin unlock requests, so you can approve or refuse them. You can also answer them any time in Settings, Users.</div><label class="item"><input type="checkbox" id="sApT"' + (s.approvalVia.indexOf('telegram') >= 0 ? ' checked' : '') + '><span>Telegram</span></label><label class="item"><input type="checkbox" id="sApE"' + (s.approvalVia.indexOf('email') >= 0 ? ' checked' : '') + '><span>Email</span></label><button class="btn pri" id="sSave" style="margin-top:14px">Save settings</button></div>';
           $('#sSnd').value = s.scanSounds;
+          ['sS', 'sE'].forEach(function (id) { $('#' + id).oninput = function () { $('#' + id + 'L').textContent = this.value ? show12(this.value) : ''; }; });
           t.oninput = t.onchange = function () { t.dataset.dirty = '1'; };
           $('#sSave').onclick = function () {
             var dd = $$('[data-d]', t).filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.d; }).sort().join(',');
