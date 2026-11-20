@@ -534,6 +534,8 @@
     }, onPick);
   };
   /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
+  /** Colour-coded status flag, same colours as the docket lists: GRN Done green, Arrived amber, Combined / Partly GRN'd blue, others plain. */
+  App.statusChip = function (s) { var c = s === 'GRN Done' ? 'ok' : s === "Partly GRN'd" || s === 'Combined' ? 'acc' : s === 'Arrived' ? 'warn' : ''; return '<span class="chip ' + c + '">' + esc(s) + '</span>'; };
   function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
     q = q.replace(/[ \t]+/g, '');
@@ -563,8 +565,8 @@
       var sug = partSuggestions(q), html = '';
       if (sug.length) html += '<h3>Parts</h3><div class="list">' + sug.map(function (p) { return '<div class="item click" data-part="' + esc(p.part) + '"><div class="grow"><div class="bold mono">' + esc(p.part) + '</div><div class="muted small">' + esc(p.desc) + '</div></div></div>'; }).join('') + '</div>';
       var ds = docketSuggestions(q), partsHtml = html, dkHtml = '';
-      if (ds.dockets.length) dkHtml += '<h3>Dockets</h3><div class="list">' + ds.dockets.map(function (d) { return '<div class="item click" data-dk="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + (d.lrDate ? ' · LR date ' + esc(C.fmtDay(d.lrDate)) : '') + '</div></div><span class="chip">' + esc(d.status) + '</span></div>'; }).join('') + '</div>';
-      if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-dk="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? '<span class="chip">' + esc(d.status) + '</span>' : '') + '</div>'; }).join('') + '</div>';
+      if (ds.dockets.length) dkHtml += '<h3>Dockets</h3><div class="list">' + ds.dockets.map(function (d) { return '<div class="item click" data-dk="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + (d.lrDate ? ' · LR date ' + esc(C.fmtDay(d.lrDate)) : '') + '</div></div>' + App.statusChip(d.status) + '</div>'; }).join('') + '</div>';
+      if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-dk="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? App.statusChip(d.status) : '') + '</div>'; }).join('') + '</div>';
       if ((App.can('searchDockets') || App.can('docketGrn')) && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search everything, including finished and archived dockets.</p>';
       html = dkHtml + partsHtml;
       res.innerHTML = html;

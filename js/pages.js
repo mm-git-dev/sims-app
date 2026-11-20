@@ -51,8 +51,8 @@
       function suggest() {
         var q = inp.value.replace(/\s+/g, ''), s = App.docketSuggestions ? App.docketSuggestions(q) : { dockets: [], invoices: [] };
         if (!s.dockets.length && !s.invoices.length) { sug.innerHTML = ''; return; }
-        sug.innerHTML = '<div class="list" style="margin-top:8px">' + s.dockets.map(function (d) { return '<div class="item click" data-sl="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div><span class="chip">' + esc(d.status) + '</span></div>'; }).join('') +
-          s.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-sl="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + '</div></div></div>'; }).join('') + '</div>';
+        sug.innerHTML = '<div class="list" style="margin-top:8px">' + s.dockets.map(function (d) { return '<div class="item click" data-sl="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + App.statusChip(d.status) + '</div>'; }).join('') +
+          s.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-sl="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + '</div></div>' + (d.lr ? App.statusChip(d.status) : '') + '</div>'; }).join('') + '</div>';
         $$('[data-sl]', sug).forEach(function (el) { el.onclick = function () { sug.innerHTML = ''; lookup(el.dataset.sl); }; });
       }
       inp.addEventListener('input', suggest);
