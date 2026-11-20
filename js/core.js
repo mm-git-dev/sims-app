@@ -250,22 +250,39 @@ var SIMS_CORE = (function () {
   function detectGrn(prev, rows, today) {
     var keys = lineKeys(rows), present = {}, out = [], byKey = {};
     prev.forEach(function (l) { byKey[l.key] = l; });
-    var grnd = [], reopened = [], created = 0;
+    var grnd = [], reopened = [], relabelled = [], created = 0, fresh = [];
     rows.forEach(function (r, i) {
       var k = keys[i]; present[k] = 1;
       var old = byKey[k], l;
       if (old) {
         l = Object.assign({}, old, r, { key: k });
         if (old.grnDate) { l.grnDate = null; l.history = (old.history || []).concat([{ reopened: today, was: old.grnDate }]); reopened.push(k); }
-      } else { l = Object.assign({}, r, { key: k, grnDate: null, history: [] }); created++; }
+      } else { l = Object.assign({}, r, { key: k, grnDate: null, history: [] }); fresh.push(l); }
       out.push(l);
+    });
+    // The company sheet can change the PO number of a line that is still in transit (blank or PPO -> MPO). The key contains the PO, so the old
+    // line would look "gone" (GRN'd) and a new line would appear. A vanished open line and a new line with the same invoice, part and quantity
+    // are the same line with a new PO: keep one line, keep its history, do not count a GRN.
+    var gone = prev.filter(function (l) { return !present[l.key] && !l.grnDate; }), used = {};
+    fresh.forEach(function (l) {
+      for (var g = 0; g < gone.length; g++) {
+        var v = gone[g];
+        if (!used[g] && v.invoice === l.invoice && v.part === l.part && Number(v.qty) === Number(l.qty)) {
+          used[g] = 1;
+          l.firstSeen = v.firstSeen; l.history = (v.history || []).concat([{ poChanged: today, from: v.po, to: l.po }]);
+          relabelled.push(l.key); return;
+        }
+      }
+      created++;
     });
     prev.forEach(function (l) {
       if (present[l.key]) return;
+      var gi = gone.indexOf(l);
+      if (gi >= 0 && used[gi]) return;
       if (!l.grnDate) { l = Object.assign({}, l, { grnDate: today }); grnd.push(l.key); }
       out.push(l);
     });
-    return { lines: out, newCount: created, grnd: grnd, reopened: reopened };
+    return { lines: out, newCount: created, grnd: grnd, reopened: reopened, relabelled: relabelled };
   }
 
   /** 'none' | 'partly' | 'done' for a docket's lines. */
