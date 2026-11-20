@@ -255,6 +255,24 @@ var SIMS_CORE = (function () {
     return '';
   }
 
+  /** Every PO a line has had, in order (from its PO-change history), ending with the current PO. Blank POs are left out. */
+  function poTrail(l) {
+    var t = [];
+    function add(p) { if (p && t[t.length - 1] !== p) t.push(p); }
+    (l.history || []).forEach(function (h) { if (h.poChanged) { if (!t.length) add(h.from); add(h.to); } });
+    add(l.po);
+    return t;
+  }
+  /** Summary of a line's PO changes: all POs, distinct PPOs (2+ means the company gave two different party orders), PPOs that came back after another PO. */
+  function poReport(l) {
+    var trail = poTrail(l), ppos = [], back = [];
+    trail.forEach(function (p, i) {
+      if (!/^PPO/.test(p)) return;
+      if (ppos.indexOf(p) < 0) ppos.push(p); else if (i > 0 && trail[i - 1] !== p && back.indexOf(p) < 0) back.push(p);
+    });
+    return { trail: trail, ppos: ppos, conflict: ppos.length > 1, cameBack: back };
+  }
+
   /**
    * prev: array of tracked lines {key, ..., grnDate: ms|null, history:[]}
    * rows: current good transit rows. today: ms (UTC midnight day).
@@ -460,7 +478,7 @@ var SIMS_CORE = (function () {
     txt: txt, partNo: partNo, parseDate: parseDate, fmtDay: fmtDay, fmtStamp: fmtStamp, fmtBatchDate: fmtBatchDate,
     fmtINR: fmtINR, fmtLakh: fmtLakh, lineValue: lineValue, estimateAmount: estimateAmount,
     comparePart: comparePart, sortByPart: sortByPart, location: location, GROUP_TITLES: GROUP_TITLES,
-    partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, partyPo: partyPo, detectGrn: detectGrn,
+    partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, partyPo: partyPo, poTrail: poTrail, poReport: poReport, detectGrn: detectGrn,
     grnProgress: grnProgress, partySection: partySection, transitState: transitState, remarkText: remarkText, shortBoxes: shortBoxes, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
     PERMS: PERMS, PERM_INFO: PERM_INFO, allPerms: allPerms, can: can, officeOpen: officeOpen, canNow: canNow,
     expectedDate: expectedDate, isOverdue: isOverdue, parsePackingList: parsePackingList, inv4: inv4,
