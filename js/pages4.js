@@ -44,7 +44,7 @@
   App.pages['box-finder'] = {
     perm: 'boxFinder',
     render: function (view) {
-      view.innerHTML = '<div class="card"><label class="f">Invoice number</label><input type="text" id="bfI" inputmode="numeric" autocomplete="off"><label class="f">Part number</label><input type="text" id="bfP" autocapitalize="characters" autocomplete="off"><div style="margin-top:12px"><button class="btn pri" id="bfGo">Find box</button></div></div><div id="bfRes" style="margin-top:12px"></div>';
+      view.innerHTML = '<div class="card"><label class="f">Invoice number</label><input type="text" id="bfI" inputmode="numeric" autocomplete="off"><div id="bfIS"></div><label class="f">Part number</label><input type="text" id="bfP" autocapitalize="characters" autocomplete="off"><div id="bfPS"></div><div style="margin-top:12px"><button class="btn pri" id="bfGo">Find box</button></div></div><div id="bfRes" style="margin-top:12px"></div>';
       var res = $('#bfRes', view), inv = $('#bfI', view), prt = $('#bfP', view);
       function go() {
         var i = inv.value.replace(/\s+/g, ''), p = prt.value.replace(/\s+/g, '').toUpperCase();
@@ -63,6 +63,24 @@
       }
       $('#bfGo', view).onclick = go;
       [inv, prt].forEach(function (i) { i.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); }); });
+      // as-you-type lists from the packing list on this device: invoices first, then only the parts of the chosen invoice
+      function digits2(x) { return String(x || '').replace(/\D/g, ''); }
+      function invoicesFor(txt) {
+        var q = digits2(txt), idx = App.lists.packByInv; if (!idx || q.length < 3) return [];
+        var starts = [], inside = [];
+        idx.forEach(function (rows, k) { var n = k.indexOf(q); if (n === 0) starts.push(k); else if (n > 0 && q.length >= 4) inside.push(k); });
+        return starts.concat(inside).slice(0, 8).map(function (k) { var rows = idx.get(k), cs = {}; rows.forEach(function (x) { cs[x.caseNo] = 1; }); return { v: k, t: k, s: rows.length + (rows.length === 1 ? ' part line' : ' part lines') + ' · ' + Object.keys(cs).length + (Object.keys(cs).length === 1 ? ' case' : ' cases') }; });
+      }
+      function partsOfInvoice(txt) {
+        var idx = App.lists.packByInv, q = digits2(inv.value), pq = txt.replace(/\s+/g, '').toUpperCase(); if (!idx || !q) return [];
+        var rows = idx.get(q) || [];   // the invoice must be chosen (or typed in full): only its own parts are offered
+        var by = {}; rows.forEach(function (x) { var e = by[x.part] || (by[x.part] = { part: x.part, desc: x.desc, qty: 0, cases: {} }); e.qty += x.qty; e.cases[x.caseNo] = 1; });
+        var out = Object.keys(by).filter(function (k) { return !pq || k.toUpperCase().indexOf(pq) === 0 || (pq.length >= 3 && k.toUpperCase().indexOf(pq) > 0); }).sort().slice(0, 40);
+        return out.map(function (k) { var e = by[k]; return { v: e.part, t: e.part, s: e.desc, r: 'Qty ' + e.qty }; });
+      }
+      var pl = App.pickList(prt, $('#bfPS', view), partsOfInvoice, function () { go(); }, { onFocus: true });
+      App.pickList(inv, $('#bfIS', view), invoicesFor, function () { prt.value = ''; prt.focus(); pl.refresh(); });
+      inv.addEventListener('input', function () { pl.refresh(); });
       inv.focus();
     }
   };

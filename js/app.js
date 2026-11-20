@@ -130,13 +130,14 @@
     L.transitBy = new Map(); (tr || []).forEach(function (r) { var o = { invoice: r[0], part: r[1], desc: r[2], qty: r[3], lr: r[4], lrDate: r[5], po: r[6], rack: r[7], bin: r[8], ppo: r[9] || (/^PPO/.test(r[6]) ? r[6] : '') }; if (!L.transitBy.has(o.part)) L.transitBy.set(o.part, []); L.transitBy.get(o.part).push(o); });
     // docket and invoice numbers for as-you-type search (open transit lines only)
     // packing list: by case number (box scan) and by part (Box Finder)
-    L.packByCase = null; L.packByPart = null;
+    L.packByCase = null; L.packByPart = null; L.packByInv = null;
     if (L.raw.pack) {
-      L.packByCase = new Map(); L.packByPart = new Map();
+      L.packByCase = new Map(); L.packByPart = new Map(); L.packByInv = new Map();
       L.raw.pack.forEach(function (r) {
         var o = { caseNo: r[0], invoice: r[1], delivery: r[2], carton: r[3], part: r[4], desc: r[5], qty: r[6], at: r[7] };
         if (!L.packByCase.has(o.caseNo)) L.packByCase.set(o.caseNo, []); L.packByCase.get(o.caseNo).push(o);
         if (!L.packByPart.has(o.part)) L.packByPart.set(o.part, []); L.packByPart.get(o.part).push(o);
+        if (o.invoice) { if (!L.packByInv.has(o.invoice)) L.packByInv.set(o.invoice, []); L.packByInv.get(o.invoice).push(o); }
       });
     }
     L.lrIdx = new Map(); L.invIdx = new Map();
@@ -507,17 +508,30 @@
     }, true);
   }
   App.keyNav = keyNav;
-  /** Type a part number, pick it from the list (mouse, touch or keyboard). box shows the list; onPick(part) runs after a choice. */
-  App.partPicker = function (inp, box, onPick) {
+  /**
+   * Suggestion list under a text box, chosen with mouse, touch or keyboard (see keyNav).
+   * items(text) returns [{v: value put in the box, t: bold line, s: small line, r: right-hand text}]. onPick(v) runs after a choice.
+   * Returns {refresh}: call it to redraw the list (for example when another box changed).
+   */
+  App.pickList = function (inp, box, items, onPick, opts) {
+    opts = opts || {};
     function paint() {
-      var q = inp.value.replace(/\s+/g, '').toUpperCase();
-      var list = q.length > 1 && !App.lists.price.has(q) ? partSuggestions(q) : [];
+      var list = items(inp.value);
       if (!list.length) { box.innerHTML = ''; return; }
-      box.innerHTML = '<div class="list" style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">' + list.map(function (p) { return '<div class="item click" data-sp="' + esc(p.part) + '"><div class="grow"><div class="bold mono">' + esc(p.part) + '</div><div class="small muted">' + esc(p.desc) + '</div></div><span class="small muted">' + App.money2(p.mrp) + '</span></div>'; }).join('') + '</div>';
-      $$('[data-sp]', box).forEach(function (d) { d.onclick = function () { inp.value = d.dataset.sp; box.innerHTML = ''; if (onPick) onPick(d.dataset.sp); inp.focus(); }; });
+      box.innerHTML = '<div class="list" style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">' + list.map(function (p) { return '<div class="item click" data-sp="' + esc(p.v) + '"><div class="grow"><div class="bold mono">' + esc(p.t) + '</div>' + (p.s ? '<div class="small muted">' + esc(p.s) + '</div>' : '') + '</div>' + (p.r ? '<span class="small muted">' + esc(p.r) + '</span>' : '') + '</div>'; }).join('') + '</div>';
+      $$('[data-sp]', box).forEach(function (d) { d.onclick = function () { inp.value = d.dataset.sp; box.innerHTML = ''; inp.focus(); if (onPick) onPick(d.dataset.sp); }; });
     }
     inp.addEventListener('input', paint);
+    if (opts.onFocus) inp.addEventListener('focus', paint);
     keyNav(inp, box);
+    return { refresh: paint };
+  };
+  /** Part number box with the price-list suggestions (Missed Claims). The list stays open on a full match so the part can be chosen like in search. */
+  App.partPicker = function (inp, box, onPick) {
+    return App.pickList(inp, box, function (txt) {
+      var q = txt.replace(/\s+/g, '').toUpperCase();
+      return (q.length > 1 ? partSuggestions(q) : []).map(function (p) { return { v: p.part, t: p.part, s: p.desc, r: App.money2(p.mrp) }; });
+    }, onPick);
   };
   /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
   function docketSuggestions(q, anyone) {
