@@ -433,15 +433,17 @@
         });
       }
       function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit', partWatch: 'Part Watch List: add parts to watch' }[p] || p; }
-      /** Office hours are picked on a 12-hour clock (hour, minutes, AM/PM) and stored as 24-hour HH:MM. */
+      /** Office hours: one picker per time, listed on a 12-hour clock (15-minute steps), stored as 24-hour HH:MM. */
       function timePick(id, hm) {
-        var p = String(hm || '10:00').split(':'), h24 = +p[0] || 0, m = +p[1] || 0, ap = h24 >= 12 ? 'PM' : 'AM', h = h24 % 12 || 12, o = '';
-        var mins = []; for (var i = 0; i < 60; i += 5) mins.push(i); if (mins.indexOf(m) < 0) { mins.push(m); mins.sort(function (x, y) { return x - y; }); }
-        var hs = ''; for (var k = 1; k <= 12; k++) hs += '<option' + (k === h ? ' selected' : '') + '>' + k + '</option>';
-        var ms = mins.map(function (x) { var t = (x < 10 ? '0' : '') + x; return '<option' + (x === m ? ' selected' : '') + '>' + t + '</option>'; }).join('');
-        return '<div class="row" style="flex-wrap:nowrap"><select id="' + id + 'H">' + hs + '</select><select id="' + id + 'M">' + ms + '</select><select id="' + id + 'P"><option' + (ap === 'AM' ? ' selected' : '') + '>AM</option><option' + (ap === 'PM' ? ' selected' : '') + '>PM</option></select></div>';
+        var p = String(hm || '10:00').split(':'), cur = (+p[0] || 0) * 60 + (+p[1] || 0), steps = [];
+        for (var m = 0; m < 1440; m += 15) steps.push(m);
+        if (steps.indexOf(cur) < 0) { steps.push(cur); steps.sort(function (x, y) { return x - y; }); }
+        return '<select id="' + id + '">' + steps.map(function (m) {
+          var h = Math.floor(m / 60), mm = m % 60, v = (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+          return '<option value="' + v + '"' + (m === cur ? ' selected' : '') + '>' + ((h % 12) || 12) + ':' + (mm < 10 ? '0' : '') + mm + ' ' + (h >= 12 ? 'PM' : 'AM') + '</option>';
+        }).join('') + '</select>';
       }
-      function timeVal(id) { var h = (+$('#' + id + 'H').value) % 12 + ($('#' + id + 'P').value === 'PM' ? 12 : 0); return (h < 10 ? '0' : '') + h + ':' + $('#' + id + 'M').value; }
+      function timeVal(id) { return $('#' + id).value; }
       function settingsTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminSettings', function () { return api('adminSettings'); }, function (d) {
