@@ -56,6 +56,7 @@
         $$('[data-sl]', sug).forEach(function (el) { el.onclick = function () { sug.innerHTML = ''; lookup(el.dataset.sl); }; });
       }
       inp.addEventListener('input', suggest);
+      App.keyNav(inp, sug);   // Down/Up + Enter choose a suggestion
       $('#dGo').onclick = go; inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { go(); inp.blur(); } });
       var sb = $('#dScan'); if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.matchMedia('(pointer:coarse)').matches) sb.classList.remove('hide');
       sb.onclick = function () { App.scan({ mode: 'route', title: 'Scan Docket', onText: function (t) { var k = C.classifyScan(t, {}); var v = k.value; inp.value = v; App.feedback(true); lookup(v); return true; } }); };
