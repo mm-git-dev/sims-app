@@ -492,6 +492,33 @@
     return out;
   }
   App.partSuggestions = partSuggestions;
+  /** Keyboard choice from a suggestion list under a text box: Down/Up move the highlight, Enter opens it, Escape clears it. Items are the '.item.click' rows inside root. */
+  function keyNav(inp, root) {
+    var cur = -1;
+    function mark(list, i) { list.forEach(function (x, j) { x.classList.toggle('kb', j === i); }); cur = i; if (list[i] && list[i].scrollIntoView) list[i].scrollIntoView({ block: 'nearest' }); }
+    inp.addEventListener('input', function () { cur = -1; });
+    inp.addEventListener('keydown', function (e) {
+      var list = $$('.item.click', root); if (!list.length) return;
+      var active = $('.item.click.kb', root); if (!active) cur = -1;
+      if (e.key === 'ArrowDown') { e.preventDefault(); mark(list, cur < 0 ? 0 : Math.min(cur + 1, list.length - 1)); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); mark(list, cur <= 0 ? -1 : cur - 1); }
+      else if (e.key === 'Enter' && active) { e.preventDefault(); e.stopImmediatePropagation(); active.click(); }
+      else if (e.key === 'Escape' && active) { e.stopPropagation(); mark(list, -1); }
+    }, true);
+  }
+  App.keyNav = keyNav;
+  /** Type a part number, pick it from the list (mouse, touch or keyboard). box shows the list; onPick(part) runs after a choice. */
+  App.partPicker = function (inp, box, onPick) {
+    function paint() {
+      var q = inp.value.replace(/\s+/g, '').toUpperCase();
+      var list = q.length > 1 && !App.lists.price.has(q) ? partSuggestions(q) : [];
+      if (!list.length) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="list" style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">' + list.map(function (p) { return '<div class="item click" data-sp="' + esc(p.part) + '"><div class="grow"><div class="bold mono">' + esc(p.part) + '</div><div class="small muted">' + esc(p.desc) + '</div></div><span class="small muted">' + App.money2(p.mrp) + '</span></div>'; }).join('') + '</div>';
+      $$('[data-sp]', box).forEach(function (d) { d.onclick = function () { inp.value = d.dataset.sp; box.innerHTML = ''; if (onPick) onPick(d.dataset.sp); inp.focus(); }; });
+    }
+    inp.addEventListener('input', paint);
+    keyNav(inp, box);
+  };
   /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
   function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
@@ -548,6 +575,7 @@
     function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else if (k.kind === 'case') App.go('#/box/' + encodeURIComponent(k.caseNo)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
     function bindRes() { $$('[data-dk]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/docket/' + encodeURIComponent(d.dataset.dk)); }; }); $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
     inp.addEventListener('input', function () { run(false); });
+    keyNav(inp, res);
     inp.setAttribute('enterkeyhint', 'search');
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { run(true); inp.blur(); } });
     showRecent(); setTimeout(function () { inp.focus(); }, 50);

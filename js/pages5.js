@@ -138,7 +138,7 @@
           el.innerHTML = '<div class="list" style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">' + list.map(function (p) { return '<div class="item click" data-sp="' + esc(p.part) + '"><div class="grow"><div class="bold mono">' + esc(p.part) + '</div><div class="small muted">' + esc(p.desc) + '</div></div><span class="small muted">' + App.money2(p.mrp) + '</span></div>'; }).join('') + '</div>';
           $$('[data-sp]', el).forEach(function (d) { d.onclick = function () { $('#wP').value = d.dataset.sp; info(true); }; });
         }
-        $('#wP').oninput = function () { info(); }; info();
+        $('#wP').oninput = function () { info(); }; info(); App.keyNav($('#wP'), $('#wInfo'));
         $('#wAdd').onclick = function () { var b = this, args = { part: $('#wP').value.replace(/\s+/g, '').toUpperCase(), note: $('#wN').value }; busy(b, true, 'Adding…'); App.swr('watchList', function () { return api('watchAdd', args); }, paint, { fresh: true, silent: true, onError: function (e) { busy(b, false); $('#wMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; } }); };
         $$('[data-rm]', t).forEach(function (b) { b.onclick = function () { b.classList.add('waiting'); App.swr('watchList', function () { return api('watchRemove', { part: b.dataset.rm }); }, paint, { fresh: true, silent: true, onError: function (e) { b.classList.remove('waiting'); toast(e.message); } }); }; });
       }

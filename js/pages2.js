@@ -191,7 +191,7 @@
       function load(fresh) {
         return App.swr('missedList:' + (all ? 'all' : 'open'), function () { return api('missedList', { all: all }); }, function (d) { App.keepState(view, function () {
           view.innerHTML = '<div class="card"><h2 style="margin-top:0">Add a missed claim</h2><div class="muted small">Short quantities only. It shows on every incoming lot of this part until cleared.</div>' +
-            '<label class="f">Part number</label><input type="text" id="mPart" autocapitalize="characters" autocomplete="off"><div class="small muted" id="mDesc"></div><label class="f">Quantity short</label><input type="number" id="mQty" min="1" inputmode="numeric">' +
+            '<label class="f">Part number</label><input type="text" id="mPart" autocapitalize="characters" autocomplete="off"><div id="mSug"></div><div class="small muted" id="mDesc"></div><label class="f">Quantity short</label><input type="number" id="mQty" min="1" inputmode="numeric">' +
             '<label class="f">Original docket (optional)</label><input type="text" id="mLr" inputmode="numeric"><label class="f">Note (optional)</label><input type="text" id="mNote" maxlength="200"><button class="btn pri" id="mAdd" style="margin-top:12px">Add</button></div>' +
             '<label class="item"><input type="checkbox" id="mAll"' + (all ? ' checked' : '') + '><span>Show cleared too</span></label>' + (all && d.items.some(function (x) { return x.status !== 'open'; }) ? '<div style="margin:8px 0"><button class="btn bad" id="mClr">Delete all cleared claims</button></div>' : '') +
             (d.items.length ? d.items.map(function (x) {
@@ -202,7 +202,9 @@
                 '<details style="margin-top:8px"><summary class="small muted">History</summary>' + x.history.map(function (h) { return '<div class="small muted">' + esc(stamp(h.at)) + ' · ' + esc(h.by) + ' · ' + esc(h.what) + '</div>'; }).join('') + '</details></div>';
             }).join('') : '<div class="card muted">No missed claims.</div>');
           var pi = $('#mPart');
-          pi.oninput = function () { var p = App.lists.price.get(pi.value.trim().toUpperCase()); $('#mDesc').textContent = p ? p.desc : (pi.value.trim() ? 'Not in the price list' : ''); };
+          function showDesc() { var p = App.lists.price.get(pi.value.trim().toUpperCase()); $('#mDesc').textContent = p ? p.desc : (pi.value.trim() ? 'Not in the price list' : ''); }
+          pi.addEventListener('input', showDesc);
+          App.partPicker(pi, $('#mSug'), function () { showDesc(); $('#mQty').focus(); });
           $('#mAll').onchange = function () { all = this.checked; load(); };
           var mc = $('#mClr'); if (mc) mc.onclick = function () { App.confirm('Permanently remove every cleared claim and its history? This cannot be undone. Claims still pending are kept.', 'Remove', 'Cancel').then(function (y) { if (!y) return; api('missedClearDone', {}).then(function (r) { toast(r.removed + ' removed.'); load(true); }).catch(function (e) { toast(e.message, 4000); }); }); };
           $('#mAdd').onclick = function () {
