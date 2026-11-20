@@ -433,12 +433,21 @@
         });
       }
       function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit', partWatch: 'Part Watch List: add parts to watch' }[p] || p; }
+      /** Office hours are picked on a 12-hour clock (hour, minutes, AM/PM) and stored as 24-hour HH:MM. */
+      function timePick(id, hm) {
+        var p = String(hm || '10:00').split(':'), h24 = +p[0] || 0, m = +p[1] || 0, ap = h24 >= 12 ? 'PM' : 'AM', h = h24 % 12 || 12, o = '';
+        var mins = []; for (var i = 0; i < 60; i += 5) mins.push(i); if (mins.indexOf(m) < 0) { mins.push(m); mins.sort(function (x, y) { return x - y; }); }
+        var hs = ''; for (var k = 1; k <= 12; k++) hs += '<option' + (k === h ? ' selected' : '') + '>' + k + '</option>';
+        var ms = mins.map(function (x) { var t = (x < 10 ? '0' : '') + x; return '<option' + (x === m ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+        return '<div class="row" style="flex-wrap:nowrap"><select id="' + id + 'H">' + hs + '</select><select id="' + id + 'M">' + ms + '</select><select id="' + id + 'P"><option' + (ap === 'AM' ? ' selected' : '') + '>AM</option><option' + (ap === 'PM' ? ' selected' : '') + '>PM</option></select></div>';
+      }
+      function timeVal(id) { var h = (+$('#' + id + 'H').value) % 12 + ($('#' + id + 'P').value === 'PM' ? 12 : 0); return (h < 10 ? '0' : '') + h + ':' + $('#' + id + 'M').value; }
       function settingsTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminSettings', function () { return api('adminSettings'); }, function (d) {
           if (t.dataset.dirty) return;
           var s = d.settings, days = s.officeDays.split(',').map(Number), dn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          t.innerHTML = '<div class="card"><h3 style="margin-top:0">Office hours</h3><div class="row"><div class="grow"><label class="f">Opens</label><input type="text" id="sS" value="' + esc(s.officeStart) + '" placeholder="10:00"></div><div class="grow"><label class="f">Closes</label><input type="text" id="sE" value="' + esc(s.officeEnd) + '" placeholder="19:00"></div></div>' +
+          t.innerHTML = '<div class="card"><h3 style="margin-top:0">Office hours</h3><div class="row"><div class="grow"><label class="f">Opens</label>' + timePick('sS', s.officeStart) + '</div><div class="grow"><label class="f">Closes</label>' + timePick('sE', s.officeEnd) + '</div></div>' +
             '<label class="f">Working days</label><div class="row">' + [1, 2, 3, 4, 5, 6, 0].map(function (d2) { return '<label class="chip"><input type="checkbox" data-d="' + d2 + '"' + (days.indexOf(d2) >= 0 ? ' checked' : '') + '> ' + dn[d2] + '</label>'; }).join('') + '</div>' +
             '<h3>Orders</h3><label class="f">Order expiry (days)</label><input type="number" id="sX" value="' + esc(s.orderExpiryDays) + '"><h3>Scanning</h3><label class="f">Scan sounds</label><select id="sSnd"><option value="off">Off</option><option value="on">On</option></select>' +
             '<h3>Logins</h3><label class="item"><input type="checkbox" id="sAuto"' + (s.autoAccept === 'on' ? ' checked' : '') + '><span>Auto-accept logins (turn OFF at go-live)</span></label><h3>Approval requests</h3><div class="small muted" style="margin-bottom:6px">Where SIMS sends new login requests and Admin unlock requests, so you can approve or refuse them. You can also answer them any time in Settings, Users.</div><label class="item"><input type="checkbox" id="sApT"' + (s.approvalVia.indexOf('telegram') >= 0 ? ' checked' : '') + '><span>Telegram</span></label><label class="item"><input type="checkbox" id="sApE"' + (s.approvalVia.indexOf('email') >= 0 ? ' checked' : '') + '><span>Email</span></label><button class="btn pri" id="sSave" style="margin-top:14px">Save settings</button></div>';
@@ -446,7 +455,7 @@
           t.oninput = t.onchange = function () { t.dataset.dirty = '1'; };
           $('#sSave').onclick = function () {
             var dd = $$('[data-d]', t).filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.d; }).sort().join(',');
-            api('adminSaveSettings', { settings: { officeStart: $('#sS').value.trim(), officeEnd: $('#sE').value.trim(), officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off', approvalVia: ($('#sApT').checked ? ($('#sApE').checked ? 'telegram,email' : 'telegram') : ($('#sApE').checked ? 'email' : 'none')) } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
+            api('adminSaveSettings', { settings: { officeStart: timeVal('sS'), officeEnd: timeVal('sE'), officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off', approvalVia: ($('#sApT').checked ? ($('#sApE').checked ? 'telegram,email' : 'telegram') : ($('#sApE').checked ? 'email' : 'none')) } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
           };
         }, fresh);
       }
