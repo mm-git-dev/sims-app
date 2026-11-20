@@ -433,17 +433,19 @@
         });
       }
       function permName(p) { return { partLocation: 'Part scan: location and transit details', docketGrn: 'Docket GRN', searchParts: 'Search: part numbers only', searchDockets: 'Search: invoices, case numbers', boxScan: 'Box scan (box contents)', combinedGrn: 'Combined GRN', pendingItems: 'Pending Items', pendingClaims: 'Pending Claims', addDelivery: 'Add delivery', uploadPod: 'Upload POD', uploadClaim: 'Upload claim sheets', editPodRemarks: 'Edit POD remarks', markPoms: 'Mark added to POMS', markSettled: 'Mark claim settled', missedClaims: 'Missed Claims', partyOrders: 'Party Orders: view and add', manageOrders: 'Manage order numbers', printPacking: 'Print packing sheets', transitList: 'Transit List', boxFinder: 'Box Finder', docketHistory: 'Docket timeline and archive search', uploadPacking: 'Upload Packing List', refreshTransit: 'Refresh transit', partWatch: 'Part Watch List: add parts to watch' }[p] || p; }
-      /** Office hours: one picker per time, listed on a 12-hour clock (15-minute steps), stored as 24-hour HH:MM. */
-      function timePick(id, hm) {
-        var p = String(hm || '10:00').split(':'), cur = (+p[0] || 0) * 60 + (+p[1] || 0), steps = [];
-        for (var m = 0; m < 1440; m += 15) steps.push(m);
-        if (steps.indexOf(cur) < 0) { steps.push(cur); steps.sort(function (x, y) { return x - y; }); }
-        return '<select id="' + id + '">' + steps.map(function (m) {
-          var h = Math.floor(m / 60), mm = m % 60, v = (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
-          return '<option value="' + v + '"' + (m === cur ? ' selected' : '') + '>' + ((h % 12) || 12) + ':' + (mm < 10 ? '0' : '') + mm + ' ' + (h >= 12 ? 'PM' : 'AM') + '</option>';
-        }).join('') + '</select>';
+      /** Office hours are typed on a 12-hour clock ("10 am", "7:30 pm") and stored as 24-hour HH:MM. */
+      function show12(hm) { var p = String(hm || '').split(':'), h = +p[0] || 0, m = +p[1] || 0; return ((h % 12) || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h >= 12 ? 'PM' : 'AM'); }
+      function parse12(txt) {
+        var m = String(txt).trim().toLowerCase().replace(/\./g, '').match(/^(\d{1,2})(?:[:\s](\d{2}))?\s*(am|pm)$/);
+        if (!m) return null;
+        var h = +m[1], mi = m[2] === undefined ? 0 : +m[2];
+        if (h < 1 || h > 12 || mi > 59) return null;
+        h = h % 12 + (m[3] === 'pm' ? 12 : 0);
+        return (h < 10 ? '0' : '') + h + ':' + (mi < 10 ? '0' : '') + mi;
       }
-      function timeVal(id) { return $('#' + id).value; }
+      function timePick(id, hm) { return '<input type="text" id="' + id + '" value="' + esc(show12(hm)) + '" placeholder="10:00 AM" autocapitalize="characters" autocomplete="off" onblur="var v=this.value,t=window.SIMSparse12&&window.SIMSparse12(v);if(t)this.value=window.SIMSshow12(t)">'; }
+      window.SIMSparse12 = parse12; window.SIMSshow12 = show12;
+      function timeVal(id) { var v = parse12($('#' + id).value); if (!v) throw new Error('Type the time like 10:00 AM or 7 PM.'); return v; }
       function settingsTab(t, fresh) {
         t.innerHTML = '<span class="spinner"></span>';
         tabSwr('adminSettings', function () { return api('adminSettings'); }, function (d) {
@@ -457,7 +459,8 @@
           t.oninput = t.onchange = function () { t.dataset.dirty = '1'; };
           $('#sSave').onclick = function () {
             var dd = $$('[data-d]', t).filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.d; }).sort().join(',');
-            api('adminSaveSettings', { settings: { officeStart: timeVal('sS'), officeEnd: timeVal('sE'), officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off', approvalVia: ($('#sApT').checked ? ($('#sApE').checked ? 'telegram,email' : 'telegram') : ($('#sApE').checked ? 'email' : 'none')) } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
+            var os, oe; try { os = timeVal('sS'); oe = timeVal('sE'); } catch (e) { toast(e.message); return; }
+            api('adminSaveSettings', { settings: { officeStart: os, officeEnd: oe, officeDays: dd, orderExpiryDays: $('#sX').value, scanSounds: $('#sSnd').value, autoAccept: $('#sAuto').checked ? 'on' : 'off', approvalVia: ($('#sApT').checked ? ($('#sApE').checked ? 'telegram,email' : 'telegram') : ($('#sApE').checked ? 'email' : 'none')) } }).then(function () { toast('Saved.'); }).catch(function (e) { toast(e.message); });
           };
         }, fresh);
       }
