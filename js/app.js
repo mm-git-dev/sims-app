@@ -318,7 +318,29 @@
     var seg = h.split('/').filter(Boolean).map(decodeURIComponent);
     return { name: seg[0] || 'home', arg: seg[1] || '', arg2: seg[2] || '', q: q };
   }
-  App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
+  // Detail pages (part, docket, invoice, box) opened from one another stack up in the back button's history. Like an app, keep that stack short:
+  // after MAX_DETAIL detail pages in a row, the next detail page replaces the current one instead of adding to the history,
+  // so the phone's back button never needs more than a few presses to get back to the list or Home page.
+  var DETAIL = { part: 1, docket: 1, invoice: 1, box: 1 }, MAX_DETAIL = 3, detailDepth = 0, replacing = false;
+  function hashPage(h) { return String(h).replace(/^#\/?/, '').split(/[\/?]/)[0] || 'home'; }
+  App.nav = function (h) {
+    if (location.hash === h) { route(); return; }
+    if (DETAIL[hashPage(location.hash)] && DETAIL[hashPage(h)] && detailDepth >= MAX_DETAIL) { replacing = true; location.replace(h); }
+    else location.hash = h;
+  };
+  App.go = App.nav;
+  // links written as <a href="#/..."> go through the same rule
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#/"]');
+    if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault(); App.nav(a.getAttribute('href'));
+  });
+  function trackDepth(name) {
+    var st = history.state || {}, d;
+    if (typeof st.sd === 'number') d = st.sd;                                  // back or forward onto an entry we already know
+    else { d = DETAIL[name] ? (replacing ? detailDepth : detailDepth + 1) : 0; try { history.replaceState(Object.assign({}, st, { sd: d }), ''); } catch (e) { /* ignore */ } }
+    replacing = false; detailDepth = d;
+  }
 
   var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', invoice: 'Invoice', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Settings', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', unlock: 'Admin Unlock', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1, unlock: 1 };
@@ -326,6 +348,7 @@
   function route() {
     App.routeSeq = (App.routeSeq || 0) + 1; App.liveFn = null;
     var r = parseHash();
+    trackDepth(r.name);
     if (!App.token && !PUBLIC[r.name]) { showLogin(); return; }
     if (!App.me && !PUBLIC[r.name]) return;
     var pg = App.pages[r.name] || App.pages.home;
