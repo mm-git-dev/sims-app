@@ -217,9 +217,30 @@
         if (d.archived) { acts.length = 0; acts.push('<button class="btn" id="xl">Download Excel</button>'); html = '<div class="card warn small">From the archive (older than 90 days). Read only.</div>' + html; }
         html += '<div class="row" style="margin:12px 0">' + acts.join('') + '</div>';
         if (App.can('docketHistory')) html += '<details class="card" id="dxTl"><summary>Timeline</summary><div id="dxTlBody" style="margin-top:8px"></div></details>';
-        html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
-          k.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + App.invLink(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+        html += '<div id="dxExtras"></div><div class="row between" style="margin-top:14px"><h3 style="margin:0">Lines (' + k.lines.length + ')</h3><div class="row" id="dxSw" style="gap:6px"><button class="btn" data-v="table">Table</button><button class="btn" data-v="inv">By invoice</button></div></div><div id="dxLines" style="margin-top:8px"></div>';
         view.innerHTML = html;
+        // lines: a table (default on a computer) or grouped by invoice (default on a phone); the choice is remembered on this device
+        var dxView = (function () { var v = ''; try { v = localStorage.getItem('sims.dxView') || ''; } catch (e) { /* none */ } if (v !== 'table' && v !== 'inv') v = (window.matchMedia && window.matchMedia('(pointer:coarse)').matches) || window.innerWidth < 700 ? 'inv' : 'table'; return v; })();
+        function lineChips(l) { return (l.mark ? ' <span class="chip acc">' + esc(l.mark) + '</span>' : '') + (l.claimPending ? ' <span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span>' : ''); }
+        function grnChip(l) { return l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : ''; }
+        function drawLines() {
+          $$('#dxSw [data-v]', view).forEach(function (b) { b.classList.toggle('pri', b.dataset.v === dxView); });
+          var box = $('#dxLines', view);
+          if (dxView === 'table') {
+            box.innerHTML = '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
+              k.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + App.invLink(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + grnChip(l) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+          } else {
+            var order = [], by = {};
+            k.lines.forEach(function (l) { var key = l.invoice || ''; if (!by[key]) { by[key] = []; order.push(key); } by[key].push(l); });
+            box.innerHTML = order.map(function (inv) {
+              var ls = by[inv];
+              return '<div class="card" style="padding:8px 12px"><div class="row between" style="background:var(--surface2);border-radius:8px;padding:7px 10px;margin-bottom:2px"><span class="mono bold" style="color:var(--accent)">Invoice ' + (inv ? App.invLink(inv) : '—') + '</span><span class="small muted">' + ls.length + (ls.length === 1 ? ' line' : ' lines') + '</span></div><div class="list">' +
+                ls.map(function (l) { return '<div class="item"><div class="grow"><div class="mono bold">' + App.partLink(l.part) + lineChips(l) + '</div><div class="small muted">' + esc(l.desc) + '</div></div><div style="text-align:right"><div class="bold">' + esc(l.qty) + '</div>' + grnChip(l) + '</div></div>'; }).join('') + '</div></div>';
+            }).join('');
+          }
+        }
+        $$('#dxSw [data-v]', view).forEach(function (b) { b.onclick = function () { dxView = b.dataset.v; try { localStorage.setItem('sims.dxView', dxView); } catch (e) { /* none */ } drawLines(); }; });
+        drawLines();
         var tl = $('#dxTl', view);
         if (tl) {
           var drawTl = function (t) { $('#dxTlBody', view).innerHTML = t.length ? '<div class="list">' + t.map(function (e) { return '<div class="item"><div class="grow"><div class="bold">' + esc(e.text) + '</div><div class="small muted">' + esc(stamp(e.ts)) + (e.by ? ' · ' + esc(e.by + (e.label ? ' (' + e.label + ')' : '')) : ' · system') + (e.detail ? ' · ' + esc(e.detail) : '') + '</div></div></div>'; }).join('') + '</div>' : '<span class="muted">No events recorded.</span>'; };
