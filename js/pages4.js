@@ -57,8 +57,19 @@
         (local ? Promise.resolve(local) : api('boxFind', { invoice: i, part: p })).then(function (d) {
           if (!d.found) { res.innerHTML = '<div class="card bad">Not found in the packing list' + (d.status && d.status.lastUpload ? ' uploaded ' + esc(stamp(d.status.lastUpload)) : '') + '. Check the invoice and part number.</div>'; App.feedback(false); return; }
           App.feedback(true);
-          res.innerHTML = '<h3>Packed in</h3><div class="list">' + d.cases.map(function (x) { return '<div class="item click" data-c="' + esc(x.caseNo) + '"><div class="grow"><div class="mono bold" style="font-size:20px">' + esc(x.caseNo) + '</div><div class="small muted">Invoice ' + esc(x.invoice) + '</div></div><span class="chip acc">Qty ' + esc(x.qty) + '</span></div>'; }).join('') + '</div><div class="small muted" style="margin-top:8px">Tap a case to see everything else in it.</div>';
-          $$('[data-c]', res).forEach(function (el) { el.onclick = function () { App.go('#/box/' + el.dataset.c); }; });
+          // every case that holds this part, fully open: all its contents on this one page, the searched part on a grey band
+          var cases = d.cases.slice().sort(function (a, b) { return String(a.caseNo) < String(b.caseNo) ? -1 : 1; }), total = 0; cases.forEach(function (x) { total += Number(x.qty) || 0; });
+          res.innerHTML = '<div class="small muted" style="margin-bottom:6px">Packed in ' + cases.length + (cases.length === 1 ? ' case' : ' cases') + ' · ' + total + (total === 1 ? ' piece' : ' pieces') + '</div><div id="bfCases"><span class="spinner"></span></div>';
+          return Promise.all(cases.map(function (x) {
+            var rows = App.lists.packByCase && App.lists.packByCase.get(x.caseNo);
+            return rows ? { caseNo: x.caseNo, lines: rows } : api('boxInfo', { caseNo: x.caseNo }).then(function (b) { return { caseNo: x.caseNo, lines: (b.lines || []) }; });
+          })).then(function (boxes) {
+            $('#bfCases', res).innerHTML = boxes.map(function (b) {
+              var ls = b.lines.slice().sort(function (a, c) { return String(a.part) < String(c.part) ? -1 : 1; });
+              return '<div class="card" style="padding:0;overflow:hidden"><div class="row between" style="padding:9px 12px;background:var(--surface2)"><span class="mono bold" style="font-size:19px;color:var(--accent)">' + esc(b.caseNo) + '</span><span class="small muted">' + ls.length + (ls.length === 1 ? ' part' : ' parts') + '</span></div>' +
+                ls.map(function (l) { var hit = String(l.part).toUpperCase() === p && same(i, l.invoice); return '<div class="row between" style="padding:8px 12px;border-top:1px solid var(--line)' + (hit ? ';background:var(--bfhit);font-weight:600' : '') + '"><span><span class="mono">' + esc(l.part) + '</span> ' + esc(l.desc) + '</span><span class="bold">' + esc(l.qty) + '</span></div>'; }).join('') + '</div>';
+            }).join('');
+          });
         }).catch(function (e) { res.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
       $('#bfGo', view).onclick = go;
