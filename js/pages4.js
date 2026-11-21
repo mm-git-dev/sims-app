@@ -43,7 +43,7 @@
   // ---------- Box Finder ----------
   App.pages['box-finder'] = {
     perm: 'boxFinder',
-    render: function (view) {
+    render: function (view, r) {
       view.innerHTML = '<div class="card"><label class="f">Invoice number</label><input type="text" id="bfI" inputmode="numeric" autocomplete="off"><div id="bfIS"></div><label class="f">Part number</label><input type="text" id="bfP" autocapitalize="characters" autocomplete="off"><div id="bfPS"></div><div style="margin-top:12px"><button class="btn pri" id="bfGo">Find box</button></div></div><div id="bfRes" style="margin-top:12px"></div>';
       var res = $('#bfRes', view), inv = $('#bfI', view), prt = $('#bfP', view);
       function go() {
@@ -81,7 +81,8 @@
       var pl = App.pickList(prt, $('#bfPS', view), partsOfInvoice, function () { go(); }, { onFocus: true });
       App.pickList(inv, $('#bfIS', view), invoicesFor, function () { prt.value = ''; prt.focus(); pl.refresh(); });
       inv.addEventListener('input', function () { pl.refresh(); });
-      inv.focus();
+      // opened from a part on the invoice page: fill both boxes and show where that part is packed
+      if (r && r.q && r.q.i && r.q.p) { inv.value = r.q.i; prt.value = r.q.p; go(); } else inv.focus();
     }
   };
 
