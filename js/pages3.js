@@ -114,7 +114,7 @@
         return App.swr('orderStatus:' + my, function () { return api('orderStatus', { mark: my }); }, function (d) { if (my !== mark || !$('#sBody')) return; st = d; App.keepState($('#sBody'), function () { paintStatus(d); }); }, { fresh: fresh }).catch(function (e) { if ($('#sBody')) $('#sBody').innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
       function lineRow(l, sel, tr) {
-        return '<div class="item">' + (sel ? '<input type="checkbox" data-k="' + esc(l.key) + '" checked>' : '') + '<div class="grow"><div><span class="bold mono">' + esc(l.part) + '</span> <span class="muted">× ' + esc(l.qty) + '</span></div><div class="small muted">' + esc(l.desc) + '</div>' +
+        return '<div class="item">' + (sel ? '<input type="checkbox" data-k="' + esc(l.key) + '" checked>' : '') + '<div class="grow"><div><span class="bold mono">' + App.partLink(l.part) + '</span> <span class="muted">× ' + esc(l.qty) + '</span></div><div class="small muted">' + esc(l.desc) + '</div>' +
           ((tr && l.lrDate) ? '<div class="small muted">Expected ' + esc(C.fmtDay(C.expectedDate(l.lrDate, 12))) + '</div>' : (l.batch ? '<div class="small muted">' + esc(l.batch) + '</div>' : '')) +
           (l.early ? '<div class="small" style="color:var(--warn)">GRN\'d early on ' + esc(C.fmtDay(l.grnDate)) + ', may have been sold, pick from location or reorder.</div>' : '') + '</div></div>';
       }
@@ -162,7 +162,7 @@
       function stateChip(s) { return s === 'overdue' ? '<span class="chip bad">Overdue</span>' : s === 'notBooked' ? '<span class="chip">Not booked yet</span>' : ''; }
       function lineTable(arr) {
         return '<div class="tscroll"><table class="dt sticky1"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>LR</th><th>LR date</th><th>Expected</th><th>Mark</th></tr></thead><tbody>' + arr.map(function (x) {
-          return '<tr><td class="mono">' + esc(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td><td class="mono">' + esc(x.invoice) + '</td><td class="mono">' + esc(x.lr) + '</td><td>' + (x.lrDate ? esc(C.fmtDay(x.lrDate)) : '—') + ' ' + stateChip(x.state) + '</td><td>' + (x.expected ? esc(C.fmtDay(x.expected)) : '') + '</td><td>' + (x.mark ? '<span class="chip acc">' + esc(x.mark) + '</span>' : '') + '</td></tr>';
+          return '<tr><td class="mono">' + App.partLink(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td><td class="mono">' + esc(x.invoice) + '</td><td class="mono">' + (x.lr ? App.lrLink(x.lr) : '') + '</td><td>' + (x.lrDate ? esc(C.fmtDay(x.lrDate)) : '—') + ' ' + stateChip(x.state) + '</td><td>' + (x.expected ? esc(C.fmtDay(x.expected)) : '') + '</td><td>' + (x.mark ? '<span class="chip acc">' + esc(x.mark) + '</span>' : '') + '</td></tr>';
         }).join('') + '</tbody></table></div>';
       }
       function listFiltered() {

@@ -11,7 +11,7 @@
     if (!d.found) return noList(d.status);
     return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:26px">' + esc(d.caseNo) + '</div></div><div class="right"><div class="bold">' + esc(d.carton) + '</div><div class="small muted">Delivery ' + esc(d.delivery) + '</div></div></div>' +
       '<div class="small muted" style="margin-top:6px">' + d.lines.length + ' parts · ' + d.total + ' pieces · ' + d.invoices.length + ' invoice' + (d.invoices.length === 1 ? '' : 's') + ' · packing list uploaded ' + esc(stamp(d.uploadedAt)) + '</div></div>' +
-      '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
   App.pages.box = {
     render: function (view, r) {

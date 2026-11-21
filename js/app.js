@@ -536,6 +536,13 @@
   /** Docket and invoice suggestions from the transit lines saved on this device (needs the Search: dockets permission). */
   /** Colour-coded status flag, same colours as the docket lists: GRN Done green, Arrived amber, Combined / Partly GRN'd blue, others plain. */
   App.statusChip = function (s) { var c = s === 'GRN Done' ? 'ok' : s === "Partly GRN'd" || s === 'Combined' ? 'acc' : s === 'Arrived' ? 'warn' : ''; return '<span class="chip ' + c + '">' + esc(s) + '</span>'; };
+  /** An LR (docket) number that opens the docket page when the user may see it; plain text otherwise. */
+  App.lrLink = function (lr, label) {
+    var t = esc(label || lr);
+    return App.can('docketGrn') || App.can('searchDockets') || App.can('combinedGrn') ? '<a href="#/docket/' + encodeURIComponent(lr) + '" class="mono bold">' + t + '</a>' : t;
+  };
+  /** A part number that opens the part page (description, MRP, location, what is in transit). */
+  App.partLink = function (part) { return '<a href="#/part/' + encodeURIComponent(part) + '" class="mono bold">' + esc(part) + '</a>'; };
   function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
     q = q.replace(/[ \t]+/g, '');
@@ -732,7 +739,7 @@
           var dst = {}; try { var oc = JSON.parse(ls(cacheKey('openDockets')) || 'null'); if (oc) oc.d.dockets.forEach(function (x) { dst[x.lr] = x.status; }); } catch (e) { /* none */ }
           html += '<div class="card"><div class="list">' + tr.map(function (t) {
           var mark = t.ppo ? (App.lists.marks[t.ppo] || '') : '', exp = C.expectedDate(t.lrDate), flag = t.lr && dst[t.lr] ? App.statusChip(dst[t.lr]) : '';
-          return '<div class="item"><div class="grow"><div class="bold mono">' + (t.lr ? 'LR ' + esc(t.lr) : 'Not booked yet') + '</div><div class="small muted">' + (flag ? 'Docket arrived at the warehouse' : 'Expected ' + (exp ? esc(C.fmtDay(exp)) : '—')) + '</div></div>' + flag +
+          return '<div class="item"><div class="grow"><div class="bold mono">' + (t.lr ? 'LR ' + App.lrLink(t.lr) : 'Not booked yet') + '</div><div class="small muted">' + (flag ? 'Docket arrived at the warehouse' : 'Expected ' + (exp ? esc(C.fmtDay(exp)) : '—')) + '</div></div>' + flag +
             (mark ? '<span class="chip acc">' + esc(mark) + '</span>' : '') + '<div class="bold" style="font-size:20px">× ' + esc(t.qty) + '</div></div>';
         }).join('') + '</div></div>';
         }

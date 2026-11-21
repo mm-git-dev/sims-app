@@ -178,7 +178,7 @@
         html += '<div class="row" style="margin:12px 0">' + acts.join('') + '</div>';
         if (App.can('docketHistory')) html += '<details class="card" id="dxTl"><summary>Timeline</summary><div id="dxTlBody" style="margin-top:8px"></div></details>';
         html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
-          k.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+          k.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
         view.innerHTML = html;
         var tl = $('#dxTl', view);
         if (tl) {
