@@ -168,12 +168,14 @@
             if (g.notBooked) return '<div class="item"><div class="grow"><div class="bold">Not booked yet</div><div class="small muted">No LR number has been given for this invoice.</div></div></div>';
             var sub = g.arrivedAt ? 'Arrived ' + esc(stamp(g.arrivedAt)) + (g.boxes ? ' · ' + g.boxes + (g.boxes === 1 ? ' box' : ' boxes') : '') :
               'LR date ' + (g.lrDate ? esc(C.fmtDay(g.lrDate)) : '—') + ' · Expected ' + (g.expected ? esc(C.fmtDay(g.expected)) + (g.expected < NOW ? ' (late)' : '') : '—');
-            return '<div class="item"><div class="grow"><div class="small muted">LR number</div><div class="bold mono" style="font-size:19px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + chipOf(g.status) + '</div>';
+            var rowGo = App.can('docketGrn') || App.can('searchDockets') || App.can('combinedGrn') ? ' click" data-go="#/docket/' + encodeURIComponent(g.lr) : '';
+            return '<div class="item' + rowGo + '"><div class="grow"><div class="small muted">LR number</div><div class="bold mono" style="font-size:19px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + chipOf(g.status) + '</div>';
           }).join('') + '</div></div>' +
           '<h3>Parts on this invoice</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' +
           d.lines.map(function (l) { return '<tr><td class="mono">' + (d.pack && d.pack.length && App.can('boxFinder') ? '<a class="lk mono" href="#/box-finder?i=' + encodeURIComponent(d.invoice) + '&p=' + encodeURIComponent(l.part) + '">' + esc(l.part) + '</a>' : esc(l.part)) + '</td><td>' + esc(l.desc) + (l.grnDate ? '<div class="small" style="color:var(--ok)">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</div>' : '') + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
         if (d.pack) html += '<div class="row" style="margin-top:14px"><button class="btn pri" id="ivPack">Show packing list</button></div><div id="ivPackRes" style="margin-top:12px"></div>';
         view.innerHTML = html;
+        $$('[data-go]', view).forEach(function (el) { el.onclick = function () { App.go(el.dataset.go); }; });
         var b = $('#ivPack'); if (b) b.onclick = function () {
           var box = $('#ivPackRes');
           if (box.innerHTML) { box.innerHTML = ''; b.textContent = 'Show packing list'; return; }

@@ -744,13 +744,15 @@
           var dst = {}; try { var oc = JSON.parse(ls(cacheKey('openDockets')) || 'null'); if (oc) oc.d.dockets.forEach(function (x) { dst[x.lr] = x.status; }); } catch (e) { /* none */ }
           html += '<div class="card"><div class="list">' + tr.map(function (t) {
           var mark = t.ppo ? (App.lists.marks[t.ppo] || '') : '', exp = C.expectedDate(t.lrDate), flag = t.lr && dst[t.lr] ? App.statusChip(dst[t.lr]) : '';
-          return '<div class="item"><div class="grow"><div class="bold mono">' + (t.lr ? 'LR ' + App.lrLink(t.lr) : 'Not booked yet') + '</div><div class="small muted">' + (flag ? 'Docket arrived at the warehouse' : 'Expected ' + (exp ? esc(C.fmtDay(exp)) : '—')) + '</div></div>' + flag +
+          var rowGo = t.lr && (App.can('docketGrn') || App.can('searchDockets') || App.can('combinedGrn')) ? ' click" data-go="#/docket/' + encodeURIComponent(t.lr) : '';   // the whole row opens the docket
+          return '<div class="item' + rowGo + '"><div class="grow"><div class="bold mono">' + (t.lr ? 'LR ' + App.lrLink(t.lr) : 'Not booked yet') + '</div><div class="small muted">' + (flag ? 'Docket arrived at the warehouse' : 'Expected ' + (exp ? esc(C.fmtDay(exp)) : '—')) + '</div></div>' + flag +
             (mark ? '<span class="chip acc">' + esc(mark) + '</span>' : '') + '<div class="bold" style="font-size:20px">× ' + esc(t.qty) + '</div></div>';
         }).join('') + '</div></div>';
         }
       }
       html += '<div class="row" style="margin-top:14px"><button class="btn pri hide" id="pNext">Scan next part</button></div>';
       view.innerHTML = html; App.feedback(true);
+      $$('[data-go]', view).forEach(function (el) { el.onclick = function () { App.go(el.dataset.go); }; });
       var nb = $('#pNext'); if (camOK) nb.classList.remove('hide');
       nb.onclick = function () { App.scan({ mode: 'route' }); };
     }
