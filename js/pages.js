@@ -153,6 +153,42 @@
   // =====================================================================
   // Docket Details
   // =====================================================================
+  // =====================================================================
+  // Invoice page: what is billed on one invoice, which docket it is in, and its packing list
+  // =====================================================================
+  App.pages.invoice = {
+    render: function (view, r) {
+      var inv = r.arg;
+      function chipOf(s) { return App.statusChip(s); }
+      function paint(d) {
+        if (!d.found) { view.innerHTML = '<div class="card bad"><h2>Invoice not found</h2><p>' + esc(inv) + ' is not in the transit data.</p></div>'; App.feedback(false); return; }
+        var NOW = Date.now();
+        var html = '<div class="card"><div class="row between"><div class="mono bold" style="font-size:26px">' + esc(d.invoice) + '</div><span class="chip">' + d.lines.length + (d.lines.length === 1 ? ' part' : ' parts') + '</span></div><div class="list" style="margin-top:8px">' +
+          d.dockets.map(function (g) {
+            if (g.notBooked) return '<div class="item"><div class="grow"><div class="bold">Not booked yet</div><div class="small muted">No LR number has been given for this invoice.</div></div></div>';
+            var sub = g.arrivedAt ? 'Arrived ' + esc(stamp(g.arrivedAt)) + (g.boxes ? ' · ' + g.boxes + (g.boxes === 1 ? ' box' : ' boxes') : '') :
+              'LR date ' + (g.lrDate ? esc(C.fmtDay(g.lrDate)) : '—') + ' · Expected ' + (g.expected ? esc(C.fmtDay(g.expected)) + (g.expected < NOW ? ' (late)' : '') : '—');
+            return '<div class="item"><div class="grow"><div class="small muted">LR number</div><div class="bold mono" style="font-size:19px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + chipOf(g.status) + '</div>';
+          }).join('') + '</div></div>' +
+          '<h3>Parts on this invoice</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Status</th></tr></thead><tbody>' +
+          d.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+        if (d.pack) html += '<div class="row" style="margin-top:14px"><button class="btn pri" id="ivPack">Show packing list</button></div><div id="ivPackRes" style="margin-top:12px"></div>';
+        view.innerHTML = html;
+        var b = $('#ivPack'); if (b) b.onclick = function () {
+          var box = $('#ivPackRes');
+          if (box.innerHTML) { box.innerHTML = ''; b.textContent = 'Show packing list'; return; }
+          b.textContent = 'Hide packing list';
+          box.innerHTML = d.pack.length ? '<h3>Packing list · ' + d.pack.length + (d.pack.length === 1 ? ' case' : ' cases') + '</h3>' + d.pack.map(function (c) {
+            return '<div class="card"><div class="row between"><div class="bold mono" style="font-size:18px">' + (App.can('boxScan') || App.can('boxFinder') ? '<a href="#/box/' + encodeURIComponent(c.caseNo) + '">' + esc(c.caseNo) + '</a>' : esc(c.caseNo)) + '</div><span class="small muted">' + esc(c.carton) + '</span></div>' +
+              '<table class="dt" style="margin-top:6px"><tbody>' + c.items.map(function (x) { return '<tr><td class="mono">' + App.partLink(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+          }).join('') : '<div class="card muted">This invoice is not in the packing list yet. Upload the latest packing list.</div>';
+        };
+        App.feedback(true);
+      }
+      App.swr('invoice:' + inv, function () { return api('invoiceDetails', { q: inv }); }, paint, { onError: function (e, have) { if (!have) view.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; } });
+    }
+  };
+
   App.pages.docket = {
     render: function (view, r) {
       function paint(d) {
@@ -178,7 +214,7 @@
         html += '<div class="row" style="margin:12px 0">' + acts.join('') + '</div>';
         if (App.can('docketHistory')) html += '<details class="card" id="dxTl"><summary>Timeline</summary><div id="dxTlBody" style="margin-top:8px"></div></details>';
         html += '<div id="dxExtras"></div><h3>Lines (' + k.lines.length + ')</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>Mark</th><th></th></tr></thead><tbody>' +
-          k.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+          k.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + (l.claimPending ? '<div><span class="chip warn">Claim pending: ' + esc(l.claimPending) + '</span></div>' : '') + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + App.invLink(l.invoice) + '</td><td>' + (l.mark ? '<span class="chip acc">' + esc(l.mark) + '</span>' : '') + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
         view.innerHTML = html;
         var tl = $('#dxTl', view);
         if (tl) {

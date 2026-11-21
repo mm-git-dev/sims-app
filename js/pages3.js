@@ -162,7 +162,7 @@
       function stateChip(s) { return s === 'overdue' ? '<span class="chip bad">Overdue</span>' : s === 'notBooked' ? '<span class="chip">Not booked yet</span>' : ''; }
       function lineTable(arr) {
         return '<div class="tscroll"><table class="dt sticky1"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th><th>LR</th><th>LR date</th><th>Expected</th><th>Mark</th></tr></thead><tbody>' + arr.map(function (x) {
-          return '<tr><td class="mono">' + App.partLink(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td><td class="mono">' + esc(x.invoice) + '</td><td class="mono">' + (x.lr ? App.lrLink(x.lr) : '') + '</td><td>' + (x.lrDate ? esc(C.fmtDay(x.lrDate)) : '—') + ' ' + stateChip(x.state) + '</td><td>' + (x.expected ? esc(C.fmtDay(x.expected)) : '') + '</td><td>' + (x.mark ? '<span class="chip acc">' + esc(x.mark) + '</span>' : '') + '</td></tr>';
+          return '<tr><td class="mono">' + App.partLink(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td><td class="mono">' + App.invLink(x.invoice) + '</td><td class="mono">' + (x.lr ? App.lrLink(x.lr) : '') + '</td><td>' + (x.lrDate ? esc(C.fmtDay(x.lrDate)) : '—') + ' ' + stateChip(x.state) + '</td><td>' + (x.expected ? esc(C.fmtDay(x.expected)) : '') + '</td><td>' + (x.mark ? '<span class="chip acc">' + esc(x.mark) + '</span>' : '') + '</td></tr>';
         }).join('') + '</tbody></table></div>';
       }
       function listFiltered() {

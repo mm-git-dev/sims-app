@@ -320,7 +320,7 @@
   }
   App.go = function (h) { if (location.hash === h) route(); else location.hash = h; };
 
-  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Settings', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', unlock: 'Admin Unlock', 'admin-open': 'Admin Access' };
+  var TITLES = { home: 'Home', 'docket-grn': 'Docket GRN', combined: 'Combined GRN', 'pending-items': 'Pending Items', 'pending-claims': 'Pending Claims', 'missed-claims': 'Missed Claims', 'party-orders': 'Party Orders', transit: 'Transit List', box: 'Box Contents', 'box-finder': 'Box Finder', invoice: 'Invoice', 'part-watch': 'Part Watch List', 'docket-history': 'Docket History', 'upload-packing': 'Upload Packing List', docket: 'Docket Details', part: 'Part Details', admin: 'Settings', 'combine-scan': 'Combine by Scanning', approve: 'Login Request', unlock: 'Admin Unlock', 'admin-open': 'Admin Access' };
   var PUBLIC = { approve: 1, unlock: 1 };
 
   function route() {
@@ -541,6 +541,8 @@
     var t = esc(label || lr);
     return App.can('docketGrn') || App.can('searchDockets') || App.can('combinedGrn') ? '<a href="#/docket/' + encodeURIComponent(lr) + '" class="mono bold">' + t + '</a>' : t;
   };
+  /** An invoice number that opens the invoice page when the user may search invoices; plain text otherwise. */
+  App.invLink = function (inv) { return inv && (App.can('searchDockets') || App.can('transitList') || App.can('combinedGrn')) ? '<a href="#/invoice/' + encodeURIComponent(inv) + '" class="mono">' + esc(inv) + '</a>' : esc(inv); };
   /** A part number that opens the part page (description, MRP, location, what is in transit). */
   App.partLink = function (part) { return '<a href="#/part/' + encodeURIComponent(part) + '" class="mono bold">' + esc(part) + '</a>'; };
   function docketSuggestions(q, anyone) {
@@ -573,7 +575,7 @@
       if (sug.length) html += '<h3>Parts</h3><div class="list">' + sug.map(function (p) { return '<div class="item click" data-part="' + esc(p.part) + '"><div class="grow"><div class="bold mono">' + esc(p.part) + '</div><div class="muted small">' + esc(p.desc) + '</div></div></div>'; }).join('') + '</div>';
       var ds = docketSuggestions(q), partsHtml = html, dkHtml = '';
       if (ds.dockets.length) dkHtml += '<h3>Dockets</h3><div class="list">' + ds.dockets.map(function (d) { return '<div class="item click" data-dk="' + esc(d.lr) + '"><div class="grow"><div class="bold mono">' + esc(d.lr) + '</div><div class="muted small">' + d.lines + (d.lines === 1 ? ' line' : ' lines') + (d.lrDate ? ' · LR date ' + esc(C.fmtDay(d.lrDate)) : '') + '</div></div>' + App.statusChip(d.status) + '</div>'; }).join('') + '</div>';
-      if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click"' + (d.lr ? ' data-dk="' + esc(d.lr) + '"' : '') + '><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? App.statusChip(d.status) : '') + '</div>'; }).join('') + '</div>';
+      if (ds.invoices.length) dkHtml += '<h3>Invoices</h3><div class="list">' + ds.invoices.map(function (d) { return '<div class="item click" data-inv="' + esc(d.invoice) + '"><div class="grow"><div class="bold mono">' + esc(d.invoice) + '</div><div class="muted small">' + (d.lr ? 'Docket ' + esc(d.lr) : 'Not booked yet') + ' · ' + d.lines + (d.lines === 1 ? ' line' : ' lines') + '</div></div>' + (d.lr ? App.statusChip(d.status) : '') + '</div>'; }).join('') + '</div>';
       if ((App.can('searchDockets') || App.can('docketGrn')) && App.open() && /^[0-9 ]{4,}$/.test(q)) partsHtml += '<p class="muted small" style="margin-top:12px">Press Enter to search everything, including finished and archived dockets.</p>';
       html = dkHtml + partsHtml;
       res.innerHTML = html;
@@ -595,8 +597,8 @@
       } else if (kinds.length) open(kinds[0]);
       else { res.innerHTML = '<div class="card">Part number not found.</div>'; App.feedback(false); }
     }
-    function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else if (k.kind === 'case') App.go('#/box/' + encodeURIComponent(k.caseNo)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
-    function bindRes() { $$('[data-dk]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/docket/' + encodeURIComponent(d.dataset.dk)); }; }); $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
+    function open(k) { o.close(); if (k.kind === 'part') App.go('#/part/' + encodeURIComponent(k.part)); else if (k.kind === 'invoice') App.go('#/invoice/' + encodeURIComponent(k.invoice)); else if (k.kind === 'case') App.go('#/box/' + encodeURIComponent(k.caseNo)); else App.go('#/docket/' + encodeURIComponent(k.lr)); }
+    function bindRes() { $$('[data-inv]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/invoice/' + encodeURIComponent(d.dataset.inv)); }; }); $$('[data-dk]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/docket/' + encodeURIComponent(d.dataset.dk)); }; }); $$('[data-part]', res).forEach(function (d) { d.onclick = function () { o.close(); App.go('#/part/' + encodeURIComponent(d.dataset.part)); }; }); }
     inp.addEventListener('input', function () { run(false); });
     keyNav(inp, res);
     inp.setAttribute('enterkeyhint', 'search');
