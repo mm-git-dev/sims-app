@@ -178,10 +178,14 @@
           var box = $('#ivPackRes');
           if (box.innerHTML) { box.innerHTML = ''; b.textContent = 'Show packing list'; return; }
           b.textContent = 'Hide packing list';
-          box.innerHTML = d.pack.length ? '<h3>Packing list · ' + d.pack.length + (d.pack.length === 1 ? ' case' : ' cases') + '</h3>' + d.pack.map(function (c) {
-            return '<div class="card" style="border-left:5px solid var(--accent)"><div class="small muted">Case</div><div class="bold mono" style="font-size:22px;color:var(--accent)">' + (App.can('boxScan') || App.can('boxFinder') ? '<a href="#/box/' + encodeURIComponent(c.caseNo) + '" style="color:var(--accent)">' + esc(c.caseNo) + '</a>' : esc(c.caseNo)) + '</div>' +
-              '<table class="dt" style="margin-top:6px"><tbody>' + c.items.map(function (x) { return '<tr><td class="mono">' + App.partLink(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
-          }).join('') : '<div class="card muted">This invoice is not in the packing list yet. Upload the latest packing list.</div>';
+          var pieces = 0; d.pack.forEach(function (c) { c.items.forEach(function (x) { pieces += Number(x.qty) || 0; }); });
+          // one plain table, no links: the case number is shown once per case, in the accent colour, with a heavier line between cases
+          box.innerHTML = d.pack.length ? '<h3>Packing list</h3><div class="small muted" style="margin-bottom:8px">' + d.pack.length + (d.pack.length === 1 ? ' case' : ' cases') + ' · ' + pieces + (pieces === 1 ? ' piece' : ' pieces') + '</div>' +
+            '<div class="card tscroll"><table class="dt"><thead><tr><th>Case</th><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' + d.pack.map(function (c) {
+              return c.items.map(function (x, i) {
+                return '<tr' + (i === 0 ? ' style="border-top:3px solid var(--line)"' : '') + '>' + (i === 0 ? '<td class="mono bold" rowspan="' + c.items.length + '" style="color:var(--accent);vertical-align:top;font-size:17px">' + esc(c.caseNo) + '</td>' : '') + '<td class="mono">' + esc(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td></tr>';
+              }).join('');
+            }).join('') + '</tbody></table></div>' : '<div class="card muted">This invoice is not in the packing list yet. Upload the latest packing list.</div>';
         };
         App.feedback(true);
       }
