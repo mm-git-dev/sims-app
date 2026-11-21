@@ -170,8 +170,8 @@
               'LR date ' + (g.lrDate ? esc(C.fmtDay(g.lrDate)) : '—') + ' · Expected ' + (g.expected ? esc(C.fmtDay(g.expected)) + (g.expected < NOW ? ' (late)' : '') : '—');
             return '<div class="item"><div class="grow"><div class="small muted">LR number</div><div class="bold mono" style="font-size:19px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + chipOf(g.status) + '</div>';
           }).join('') + '</div></div>' +
-          '<h3>Parts on this invoice</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Status</th></tr></thead><tbody>' +
-          d.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td>' + (l.grnDate ? '<span class="chip ok">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+          '<h3>Parts on this invoice</h3><div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' +
+          d.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + (l.grnDate ? '<div class="small" style="color:var(--ok)">GRN\'d ' + esc(C.fmtDay(l.grnDate)) + '</div>' : '') + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
         if (d.pack) html += '<div class="row" style="margin-top:14px"><button class="btn pri" id="ivPack">Show packing list</button></div><div id="ivPackRes" style="margin-top:12px"></div>';
         view.innerHTML = html;
         var b = $('#ivPack'); if (b) b.onclick = function () {
