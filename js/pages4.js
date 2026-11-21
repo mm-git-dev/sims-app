@@ -64,11 +64,14 @@
             var rows = App.lists.packByCase && App.lists.packByCase.get(x.caseNo);
             return rows ? { caseNo: x.caseNo, lines: rows } : api('boxInfo', { caseNo: x.caseNo }).then(function (b) { return { caseNo: x.caseNo, lines: (b.lines || []) }; });
           })).then(function (boxes) {
-            $('#bfCases', res).innerHTML = boxes.map(function (b) {
+            // same table as the packing list on the invoice page: case number once per case in the accent colour, a heavier line between cases, the searched part on a grey band
+            $('#bfCases', res).innerHTML = '<div class="card tscroll"><table class="dt"><thead><tr><th>Case</th><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' + boxes.map(function (b) {
               var ls = b.lines.slice().sort(function (a, c) { return String(a.part) < String(c.part) ? -1 : 1; });
-              return '<div class="card" style="padding:0;overflow:hidden"><div class="row between" style="padding:9px 12px;background:var(--surface2)"><span class="mono bold" style="font-size:19px;color:var(--accent)">' + esc(b.caseNo) + '</span><span class="small muted">' + ls.length + (ls.length === 1 ? ' part' : ' parts') + '</span></div>' +
-                ls.map(function (l) { var hit = String(l.part).toUpperCase() === p && same(i, l.invoice); return '<div class="row between" style="padding:8px 12px;border-top:1px solid var(--line)' + (hit ? ';background:var(--bfhit);font-weight:600' : '') + '"><span><span class="mono">' + esc(l.part) + '</span> ' + esc(l.desc) + '</span><span class="bold">' + esc(l.qty) + '</span></div>'; }).join('') + '</div>';
-            }).join('');
+              return ls.map(function (l, n) {
+                var hit = String(l.part).toUpperCase() === p && same(i, l.invoice), st = hit ? ' style="background:var(--bfhit);font-weight:600"' : '';
+                return '<tr' + (n === 0 ? ' style="border-top:3px solid var(--line)"' : '') + '>' + (n === 0 ? '<td class="mono bold" rowspan="' + ls.length + '" style="color:var(--accent);vertical-align:top;font-size:17px">' + esc(b.caseNo) + '</td>' : '') + '<td class="mono"' + st + '>' + esc(l.part) + '</td><td' + st + '>' + esc(l.desc) + '</td><td' + st + '>' + esc(l.qty) + '</td></tr>';
+              }).join('');
+            }).join('') + '</tbody></table></div>';
           });
         }).catch(function (e) { res.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }
