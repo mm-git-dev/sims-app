@@ -539,12 +539,12 @@
   /** An LR (docket) number that opens the docket page when the user may see it; plain text otherwise. */
   App.lrLink = function (lr, label) {
     var t = esc(label || lr);
-    return App.can('docketGrn') || App.can('searchDockets') || App.can('combinedGrn') ? '<a href="#/docket/' + encodeURIComponent(lr) + '" class="mono bold">' + t + '</a>' : t;
+    return App.can('docketGrn') || App.can('searchDockets') || App.can('combinedGrn') ? '<a href="#/docket/' + encodeURIComponent(lr) + '" class="lk mono">' + t + '</a>' : t;
   };
   /** An invoice number that opens the invoice page when the user may search invoices; plain text otherwise. */
-  App.invLink = function (inv) { return inv && (App.can('searchDockets') || App.can('transitList') || App.can('combinedGrn')) ? '<a href="#/invoice/' + encodeURIComponent(inv) + '" class="mono">' + esc(inv) + '</a>' : esc(inv); };
+  App.invLink = function (inv) { return inv && (App.can('searchDockets') || App.can('transitList') || App.can('combinedGrn')) ? '<a href="#/invoice/' + encodeURIComponent(inv) + '" class="lk mono">' + esc(inv) + '</a>' : esc(inv); };
   /** A part number that opens the part page (description, MRP, location, what is in transit). */
-  App.partLink = function (part) { return '<a href="#/part/' + encodeURIComponent(part) + '" class="mono bold">' + esc(part) + '</a>'; };
+  App.partLink = function (part) { return '<a href="#/part/' + encodeURIComponent(part) + '" class="lk mono">' + esc(part) + '</a>'; };
   function docketSuggestions(q, anyone) {
     var out = { dockets: [], invoices: [] };
     q = q.replace(/[ \t]+/g, '');
