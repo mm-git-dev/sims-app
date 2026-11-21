@@ -9,7 +9,7 @@
   // ---------- Box contents ----------
   function boxHtml(d) {
     if (!d.found) return noList(d.status);
-    return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:26px">' + esc(d.caseNo) + '</div></div><div class="right"><div class="bold">' + esc(d.carton) + '</div><div class="small muted">Delivery ' + esc(d.delivery) + '</div></div></div>' +
+    return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:26px">' + esc(d.caseNo) + '</div></div></div>' +
       '<div class="small muted" style="margin-top:6px">' + d.lines.length + ' parts · ' + d.total + ' pieces · ' + d.invoices.length + ' invoice' + (d.invoices.length === 1 ? '' : 's') + ' · packing list uploaded ' + esc(stamp(d.uploadedAt)) + '</div></div>' +
       '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
@@ -57,7 +57,7 @@
         (local ? Promise.resolve(local) : api('boxFind', { invoice: i, part: p })).then(function (d) {
           if (!d.found) { res.innerHTML = '<div class="card bad">Not found in the packing list' + (d.status && d.status.lastUpload ? ' uploaded ' + esc(stamp(d.status.lastUpload)) : '') + '. Check the invoice and part number.</div>'; App.feedback(false); return; }
           App.feedback(true);
-          res.innerHTML = '<h3>Packed in</h3><div class="list">' + d.cases.map(function (x) { return '<div class="item click" data-c="' + esc(x.caseNo) + '"><div class="grow"><div class="mono bold" style="font-size:20px">' + esc(x.caseNo) + '</div><div class="small muted">' + esc(x.carton) + ' · invoice ' + esc(x.invoice) + '</div></div><span class="chip acc">Qty ' + esc(x.qty) + '</span></div>'; }).join('') + '</div><div class="small muted" style="margin-top:8px">Tap a case to see everything else in it.</div>';
+          res.innerHTML = '<h3>Packed in</h3><div class="list">' + d.cases.map(function (x) { return '<div class="item click" data-c="' + esc(x.caseNo) + '"><div class="grow"><div class="mono bold" style="font-size:20px">' + esc(x.caseNo) + '</div><div class="small muted">Invoice ' + esc(x.invoice) + '</div></div><span class="chip acc">Qty ' + esc(x.qty) + '</span></div>'; }).join('') + '</div><div class="small muted" style="margin-top:8px">Tap a case to see everything else in it.</div>';
           $$('[data-c]', res).forEach(function (el) { el.onclick = function () { App.go('#/box/' + el.dataset.c); }; });
         }).catch(function (e) { res.innerHTML = '<div class="card bad err">' + esc(e.message) + '</div>'; });
       }

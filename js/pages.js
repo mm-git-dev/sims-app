@@ -179,7 +179,7 @@
           if (box.innerHTML) { box.innerHTML = ''; b.textContent = 'Show packing list'; return; }
           b.textContent = 'Hide packing list';
           box.innerHTML = d.pack.length ? '<h3>Packing list · ' + d.pack.length + (d.pack.length === 1 ? ' case' : ' cases') + '</h3>' + d.pack.map(function (c) {
-            return '<div class="card"><div class="row between"><div class="bold mono" style="font-size:18px">' + (App.can('boxScan') || App.can('boxFinder') ? '<a href="#/box/' + encodeURIComponent(c.caseNo) + '">' + esc(c.caseNo) + '</a>' : esc(c.caseNo)) + '</div><span class="small muted">' + esc(c.carton) + '</span></div>' +
+            return '<div class="card" style="border-left:5px solid var(--accent)"><div class="small muted">Case</div><div class="bold mono" style="font-size:22px;color:var(--accent)">' + (App.can('boxScan') || App.can('boxFinder') ? '<a href="#/box/' + encodeURIComponent(c.caseNo) + '" style="color:var(--accent)">' + esc(c.caseNo) + '</a>' : esc(c.caseNo)) + '</div>' +
               '<table class="dt" style="margin-top:6px"><tbody>' + c.items.map(function (x) { return '<tr><td class="mono">' + App.partLink(x.part) + '</td><td>' + esc(x.desc) + '</td><td>' + esc(x.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
           }).join('') : '<div class="card muted">This invoice is not in the packing list yet. Upload the latest packing list.</div>';
         };
