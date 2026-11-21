@@ -562,10 +562,11 @@
   }
   App.docketSuggestions = function (q) { return docketSuggestions(q, true); };
   function openSearch() {
-    var o = overlay('Search SIMS', '<input type="search" id="sq" placeholder="Part, LR, invoice or case no." autocomplete="off" autocapitalize="characters"><div id="sres" style="margin-top:12px"></div>');
+    var o = overlay('Search SIMS', '<input type="search" id="sq" placeholder="' + (App.open() ? 'Part, LR, invoice or case no.' : 'Part number') + '" autocomplete="off" autocapitalize="characters"><div id="sres" style="margin-top:12px"></div>');
     var inp = $('#sq', o.el), res = $('#sres', o.el);
     function showRecent() {
       var r = recent();
+      if (!App.open()) r = r.filter(function (x) { return App.lists.price.has(String(x).toUpperCase()); });   // after hours, earlier docket or invoice searches are not listed
       res.innerHTML = r.length ? '<h3>Recent searches</h3><div class="list">' + r.map(function (x) { return '<div class="item click" data-q="' + esc(x) + '">' + esc(x) + '</div>'; }).join('') + '</div>' : '';
       $$('[data-q]', res).forEach(function (d) { d.onclick = function () { inp.value = d.dataset.q; run(true); }; });
     }
@@ -658,6 +659,8 @@
   /** Route a scanned or typed text. Returns true to close the scanner. */
   App.handleScan = function (text) {
     var k = C.classifyScan(text, { isPart: function (p) { return App.lists.price.has(p); } });
+    // after office hours only a part number may be scanned: no docket, box or invoice, whatever is in the code
+    if (!App.open() && k.kind !== 'part') { App.feedback(false); toast('SIMS is closed. Only part scanning works now.', 3500); return false; }
     if (k.kind === 'part') {
       var p = App.lists.price.has(k.value) ? k.value : (App.lists.price.has(k.value.toUpperCase()) ? k.value.toUpperCase() : '');
       if (!p) { App.feedback(false); toast('Part not found: ' + k.value); return false; }
@@ -693,7 +696,7 @@
     render: function (view) {
       var u = App.me.user, h = new Date().getHours(), g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
       view.innerHTML = '<h2>' + esc(g + ', ' + App.who()) + '</h2>' + (u.adminLocked ? '<div class="card warn"><b>Admin is locked.</b> This login can only scan parts until you unlock it.<div style="margin-top:10px"><button class="btn pri" id="hUnlock">Unlock Admin</button></div><div id="hUnlockMsg" class="small muted" style="margin-top:8px"></div></div>' : '') + '<button class="btn pri big hide" id="hScan">' + ICON.scan.replace('<svg', '<svg style="width:22px;height:22px;vertical-align:-4px;stroke:currentColor;fill:none;stroke-width:2;margin-right:8px"') + 'Scan</button>' +
-        '<div style="margin:14px 0"><input type="search" id="hSearch" placeholder="Search part, LR, invoice, case" readonly></div>' +
+        '<div style="margin:14px 0"><input type="search" id="hSearch" placeholder="' + (App.open() ? 'Search part, LR, invoice, case' : 'Search part number') + '" readonly></div>' +
         '<div class="card" id="hFresh"></div><div id="hStat"></div>';
       var hu = $('#hUnlock'); if (hu) hu.onclick = function () { App.unlockAdmin($('#hUnlockMsg'), hu); };
       var sb = $('#hScan'); if (camOK && (window.matchMedia('(max-width:800px)').matches || window.matchMedia('(pointer:coarse)').matches)) sb.classList.remove('hide');
