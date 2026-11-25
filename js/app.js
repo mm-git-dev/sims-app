@@ -321,7 +321,7 @@
   // Detail pages (part, docket, invoice, box) opened from one another stack up in the back button's history. Like an app, keep that stack short:
   // after MAX_DETAIL detail pages in a row, the next detail page replaces the current one instead of adding to the history,
   // so the phone's back button never needs more than a few presses to get back to the list or Home page.
-  var DETAIL = { part: 1, docket: 1, invoice: 1, box: 1 }, MAX_DETAIL = 3, detailDepth = 0, replacing = false;
+  var DETAIL = { part: 1, docket: 1, invoice: 1, box: 1, 'box-finder': 1 }, MAX_DETAIL = 2, detailDepth = 0, replacing = false;
   function hashPage(h) { return String(h).replace(/^#\/?/, '').split(/[\/?]/)[0] || 'home'; }
   App.nav = function (h) {
     if (location.hash === h) { route(); return; }
