@@ -131,6 +131,21 @@ var SIMS_CORE = (function () {
     return second.slice(8);
   }
 
+  /** GST e-invoice QR (a signed token: header.payload.signature) -> the invoice number (DocNo), or '' if it is not one. */
+  function invoiceFromQr(text) {
+    var s = txt(text), p = s.split('.');
+    if (p.length !== 3 || s.slice(0, 2) !== 'ey') return '';
+    try {
+      var b = p[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+      var json = typeof atob === 'function' ? atob(b) : Buffer.from(b, 'base64').toString('binary');
+      try { json = decodeURIComponent(escape(json)); } catch (e) { /* plain ascii */ }
+      var o = JSON.parse(json), d = o && o.data;
+      if (typeof d === 'string') d = JSON.parse(d);
+      var no = d && (d.DocNo || d.docNo || d.InvNo);
+      return no ? txt(no) : '';
+    } catch (e) { return ''; }
+  }
+
   /**
    * Decide what a scanned/typed text is.
    * ctx.isPart(text) -> bool (is it in the price list). ctx.siteHost optional.
@@ -142,6 +157,8 @@ var SIMS_CORE = (function () {
     if (!s) return { kind: 'unknown', value: '' };
     var q = partFromQr(s);
     if (q) return { kind: 'part', value: q };
+    var inv = invoiceFromQr(s);
+    if (inv) return { kind: 'invoice', value: inv };
     var m = s.match(/[?&#\/]docket[=\/]([A-Za-z0-9]+)/i);
     if (m && /^https?:/i.test(s)) return { kind: 'docketLink', value: m[1] };
     var compact = s.replace(/\s+/g, '');
@@ -478,7 +495,7 @@ var SIMS_CORE = (function () {
     txt: txt, partNo: partNo, parseDate: parseDate, fmtDay: fmtDay, fmtStamp: fmtStamp, fmtBatchDate: fmtBatchDate,
     fmtINR: fmtINR, fmtLakh: fmtLakh, lineValue: lineValue, estimateAmount: estimateAmount,
     comparePart: comparePart, sortByPart: sortByPart, location: location, GROUP_TITLES: GROUP_TITLES,
-    partFromQr: partFromQr, classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, partyPo: partyPo, poTrail: poTrail, poReport: poReport, detectGrn: detectGrn,
+    partFromQr: partFromQr, invoiceFromQr: invoiceFromQr,classifyScan: classifyScan, checkTab: checkTab, lineKeys: lineKeys, partyPo: partyPo, poTrail: poTrail, poReport: poReport, detectGrn: detectGrn,
     grnProgress: grnProgress, partySection: partySection, transitState: transitState, remarkText: remarkText, shortBoxes: shortBoxes, remarkLine: remarkLine, docketStatus: docketStatus, docketFlags: docketFlags, claimState: claimState,
     PERMS: PERMS, PERM_INFO: PERM_INFO, allPerms: allPerms, can: can, officeOpen: officeOpen, canNow: canNow,
     expectedDate: expectedDate, isOverdue: isOverdue, parsePackingList: parsePackingList, inv4: inv4,

@@ -689,6 +689,10 @@
       if (!p) { App.feedback(false); toast('Part not found: ' + k.value); return false; }
       App.feedback(true); App.go('#/part/' + encodeURIComponent(p)); return true;
     }
+    if (k.kind === 'invoice') {
+      if (!(App.can('searchDockets') || App.can('transitList') || App.can('combinedGrn'))) { App.feedback(false); toast('You do not have permission to open invoices.'); return false; }
+      App.feedback(true); App.go('#/invoice/' + encodeURIComponent(k.value)); return true;
+    }
     if (k.kind === 'delivery') { App.feedback(false); toast(k.hint); return false; }
     if (k.kind === 'case') { if (!App.can('boxScan')) { App.feedback(false); toast('You do not have permission to see box contents.'); return false; } App.feedback(true); App.go('#/box/' + encodeURIComponent(k.value)); return true; }
     if (k.kind === 'docketLink') { App.feedback(true); App.go('#/docket/' + encodeURIComponent(k.value)); return true; }
