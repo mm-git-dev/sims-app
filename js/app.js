@@ -433,7 +433,21 @@
     $('#logoutBtn').onclick = function () { closeDrawer(); labelModal(); };
     $('#who').textContent = App.who();
     $$('#side a.nav').forEach(function (a) { a.classList.toggle('on', a.dataset.r === menuKey(App.page)); });
-    $$('#side a.nav').forEach(function (a) { a.addEventListener('click', closeDrawer); });
+    $$('#side a.nav').forEach(function (a) { a.addEventListener('click', menuClick); });
+  }
+  // On a phone the open side menu owns a history step. Take that step away first, and only then change page,
+  // so the menu never leaves junk in the Back history and menu pages can replace one another.
+  function menuClick(e) {
+    var h = e.currentTarget.getAttribute('href');
+    if (!drawerL) return;                                   // wide screen: normal link handling
+    e.preventDefault(); e.stopPropagation();
+    var L = drawerL; drawerL = null; hideDrawer();
+    var i = layers.indexOf(L); if (i >= 0) layers.splice(i, 1);
+    if (history.state && history.state.simsLayer === L.id) {
+      skipPop++;
+      window.addEventListener('popstate', function once() { window.removeEventListener('popstate', once); App.nav(h); });
+      history.back();
+    } else App.nav(h);
   }
   function setTheme(t, save) {
     document.documentElement.dataset.theme = t; ls('sims.theme', t);
