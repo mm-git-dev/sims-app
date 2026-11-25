@@ -374,6 +374,17 @@
   function closedHtml() { var s = App.me.settings; return '<div class="card warn"><h2>SIMS is closed</h2><p>SIMS is closed. Office hours ' + fmtHM(s.officeStart) + ' to ' + fmtHM(s.officeEnd) + '.</p><p class="muted">Only basic part scan works now (part number, description, MRP).</p></div>'; }
   function fmtHM(t) { var p = t.split(':'), h = +p[0], ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return h + ':' + p[1] + ' ' + ap; }
   function menuKey(p) { return p === 'docket' || p === 'combine-scan' || p === 'box' ? '' : p; }
+  // Home is always the bottom of the Back history, like an Android app: if the app was opened straight onto another page
+  // (a link, a reload from the home-screen icon ...), put Home underneath it once, so Back lands on Home instead of leaving.
+  (function anchorHome() {
+    try {
+      var st = history.state || {}, pg = hashPage(location.hash);
+      if (st.anchored || st.simsLayer || pg === 'home' || PUBLIC[pg]) return;
+      var cur = location.hash;
+      history.replaceState({ anchored: 1, sd: 0 }, '', location.pathname + location.search + '#/home');
+      history.pushState({ anchored: 1 }, '', location.pathname + location.search + cur);
+    } catch (e) { /* ignore */ }
+  })();
   window.addEventListener('hashchange', route);
   App.route = route;
 
@@ -503,7 +514,7 @@
   }
   function startSession(token) {
     App.token = token; ls('sims.token', token);
-    api('me').then(function (me) { applyMe(me); if (!location.hash || /^#\/?$/.test(location.hash) || location.hash.indexOf('#/login') === 0) location.hash = '#/home'; return boot2(); }).catch(function (e) { endSession(e.message); });
+    api('me').then(function (me) { applyMe(me); if (!location.hash || /^#\/?$/.test(location.hash) || location.hash.indexOf('#/login') === 0) location.replace('#/home'); return boot2(); }).catch(function (e) { endSession(e.message); });
   }
   function applyMe(me) { App.me = me; setTheme(me.theme || 'dark', false); ls('sims.me', JSON.stringify(me)); }
   function boot2() {
