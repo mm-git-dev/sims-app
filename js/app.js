@@ -325,7 +325,10 @@
   function hashPage(h) { return String(h).replace(/^#\/?/, '').split(/[\/?]/)[0] || 'home'; }
   App.nav = function (h) {
     if (location.hash === h) { route(); return; }
-    if (DETAIL[hashPage(location.hash)] && DETAIL[hashPage(h)] && detailDepth >= MAX_DETAIL) { replacing = true; location.replace(h); }
+    var from = hashPage(location.hash), to = hashPage(h);
+    // moving between menu pages (Docket GRN, Combined GRN, Party Orders ...) swaps the page instead of stacking, so Back goes to Home
+    if (!DETAIL[from] && !DETAIL[to] && from !== 'home' && to !== 'home') { replacing = true; location.replace(h); }
+    else if (DETAIL[from] && DETAIL[to] && detailDepth >= MAX_DETAIL) { replacing = true; location.replace(h); }
     else location.hash = h;
   };
   App.go = App.nav;
