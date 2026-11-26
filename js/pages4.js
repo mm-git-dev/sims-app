@@ -20,11 +20,11 @@
     function fill(v) {
       box = $('#bxShip', view); if (!box || !v || !v.found) return;
       var NOW = Date.now();
-      box.innerHTML = '<div class="small muted">Invoice</div><div class="bold mono" style="font-size:16px;margin-bottom:6px">' + App.invLink(inv) + '</div>' +
+      box.innerHTML = '<div class="small muted">Invoice</div><div class="bold mono" style="font-size:18px;margin-bottom:6px">' + App.invLink(inv) + '</div>' +
         v.dockets.map(function (g) {
           if (g.notBooked) return '<div class="item"><div class="grow"><div class="bold">Not booked yet</div></div></div>';
           var sub = g.arrivedAt ? 'Arrived ' + esc(stamp(g.arrivedAt)) : 'LR date ' + (g.lrDate ? esc(C.fmtDay(g.lrDate)) : '—') + ' · Expected ' + (g.expected ? esc(C.fmtDay(g.expected)) + (g.expected < NOW ? ' (late)' : '') : '—');
-          return '<div class="item"><div class="grow"><div class="small muted">Docket (LR)</div><div class="bold mono" style="font-size:16px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + App.statusChip(g.status) + '</div>';
+          return '<div class="item"><div class="grow"><div class="small muted">Docket (LR)</div><div class="bold mono" style="font-size:18px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + App.statusChip(g.status) + '</div>';
         }).join('');
     }
     App.swr('invoice:' + inv, function () { return api('invoiceDetails', { q: inv }); }, fill, { silent: true, noStatus: true });
