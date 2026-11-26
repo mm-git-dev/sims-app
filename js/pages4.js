@@ -9,7 +9,7 @@
   // ---------- Box contents ----------
   function boxHtml(d) {
     if (!d.found) return noList(d.status);
-    return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:26px">' + esc(d.caseNo) + '</div></div></div>' +
+    return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:30px;color:var(--accent)">' + esc(d.caseNo) + '</div></div></div>' +
       '<div id="bxShip" style="margin-top:10px"></div></div>' +
       '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
@@ -20,11 +20,11 @@
     function fill(v) {
       box = $('#bxShip', view); if (!box || !v || !v.found) return;
       var NOW = Date.now();
-      box.innerHTML = '<div class="small muted">Invoice</div><div class="bold mono" style="font-size:19px;margin-bottom:8px">' + App.invLink(inv) + '</div>' +
+      box.innerHTML = '<div class="small muted">Invoice</div><div class="bold mono" style="font-size:16px;margin-bottom:6px">' + App.invLink(inv) + '</div>' +
         v.dockets.map(function (g) {
           if (g.notBooked) return '<div class="item"><div class="grow"><div class="bold">Not booked yet</div></div></div>';
           var sub = g.arrivedAt ? 'Arrived ' + esc(stamp(g.arrivedAt)) : 'LR date ' + (g.lrDate ? esc(C.fmtDay(g.lrDate)) : '—') + ' · Expected ' + (g.expected ? esc(C.fmtDay(g.expected)) + (g.expected < NOW ? ' (late)' : '') : '—');
-          return '<div class="item"><div class="grow"><div class="small muted">Docket (LR)</div><div class="bold mono" style="font-size:19px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + App.statusChip(g.status) + '</div>';
+          return '<div class="item"><div class="grow"><div class="small muted">Docket (LR)</div><div class="bold mono" style="font-size:16px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + App.statusChip(g.status) + '</div>';
         }).join('');
     }
     App.swr('invoice:' + inv, function () { return api('invoiceDetails', { q: inv }); }, fill, { silent: true, noStatus: true });
