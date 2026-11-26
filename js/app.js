@@ -680,6 +680,7 @@
     var origClose = o.close; o.close = function () { stop(); origClose(); };
     $('[data-x]', o.el).onclick = o.close;
     function got(text) {
+      if (stopped) return;                         // a read that was still in flight when the scanner closed (a second barcode on the same label) must not open another page
       var now = Date.now(); if (text === last && now - lastAt < 1800) return; last = text; lastAt = now;
       var r = (opts.onText || App.handleScan)(text, o);
       Promise.resolve(r).then(function (closeIt) { if (closeIt !== false && !stopped) o.close(); });
