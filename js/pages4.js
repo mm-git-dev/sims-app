@@ -11,7 +11,7 @@
     if (!d.found) return noList(d.status);
     return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:26px">' + esc(d.caseNo) + '</div></div></div>' +
       '<div id="bxShip" style="margin-top:10px"></div></div>' +
-      '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + esc(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
   // which invoice this box belongs to, and the docket(s) it travelled in: status, expected or arrival date (links to both pages)
   function shipInfo(view, d) {
