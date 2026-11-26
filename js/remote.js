@@ -9,7 +9,7 @@
     if (route.m && Date.now() - route.at < 60000) return Promise.resolve(route);
     return publicIp().then(function (addr) { if (!addr) return null; return api('printRoute', { ip: addr }, { quiet: true }).then(function (m) { route = { at: Date.now(), ip: addr, m: m }; return route; }); });
   }
-  setInterval(function () { if (App.me && App.me.remotePrint) getRoute().catch(function () { }); }, 45000);
+  setInterval(function () { if (!document.hidden && App.me && App.me.remotePrint) getRoute().catch(function () { }); }, 45000);
 
   function publicIp() {
     if (Date.now() - ip.at < 300000) return Promise.resolve(ip.v);

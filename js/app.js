@@ -232,7 +232,7 @@
   /** A page registers how to refresh itself; the app calls it every 20 s while the page is on screen and idle. */
   App.live = function (fn) { App.liveFn = fn; };
   function liveTick() {
-    if (document.hidden || !App.liveFn || !App.me) return;
+    if (document.hidden || !App.liveFn || !App.me || !App.open()) return;
     if (document.querySelector('.modal, .overlay')) return;
     var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && $('#page') && $('#page').contains(ae)) return;
     App.inLive = true; try { App.liveFn(); } catch (e) { /* ignore */ }
@@ -294,7 +294,15 @@
     }).catch(function (e) { btn.disabled = false; btn.textContent = 'Unlock Admin'; msgEl.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
   };
   App.can = function (p) { return !!App.me && C.can(App.me.user, p); };
-  App.open = function () { return !!App.me && (App.me.open || App.me.user.admin); };
+  // Open or closed is worked out from the clock every time (IST), not taken from the moment the app last asked the server,
+  // so a phone left open past closing time stops fetching by itself instead of sending blocked requests all evening.
+  App.open = function () {
+    if (!App.me) return false;
+    if (App.me.user.admin) return true;
+    var s = App.me.settings || {};
+    if (!s.officeStart || !s.officeEnd) return !!App.me.open;
+    return C.officeOpen({ start: s.officeStart, end: s.officeEnd, days: s.officeDays ? String(s.officeDays).split(',').filter(Boolean).map(Number) : undefined }, Date.now() + (App.clockOff || 0));
+  };
   App.canNow = function (p) { return App.can(p) && (App.open() || p === 'partBasic'); };
   App.who = function () { var u = App.me.user; return u.name + (u.label ? ' (' + u.label + ')' : ''); };
 
@@ -516,7 +524,7 @@
     App.token = token; ls('sims.token', token);
     api('me').then(function (me) { applyMe(me); if (!location.hash || /^#\/?$/.test(location.hash) || location.hash.indexOf('#/login') === 0) location.replace('#/home'); return boot2(); }).catch(function (e) { endSession(e.message); });
   }
-  function applyMe(me) { App.me = me; setTheme(me.theme || 'dark', false); ls('sims.me', JSON.stringify(me)); }
+  function applyMe(me) { App.me = me; if (me.now) App.clockOff = me.now - Date.now(); setTheme(me.theme || 'dark', false); ls('sims.me', JSON.stringify(me)); }
   function boot2() {
     return App.loadCachedLists().then(function () { route(); App.refreshLists(); setTimeout(App.prefetch, 1500); });
   }
@@ -826,7 +834,7 @@
     api('me', {}, { quiet: false }).then(function (m) { var first = !App.me; applyMe(m); if (first) return boot2(); renderShell(); refreshMenu(); }).catch(function (e) {
       if (e.code === 'net') { if (!App.me) { $('#boot') && ($('#boot').innerHTML = '<div class="card">' + esc(e.message) + '</div>'); } }
     });
-    setInterval(function () { App.refreshLists(); App.prefetch(); }, 5 * 60000);
+    setInterval(function () { if (!document.hidden) { App.refreshLists(); App.prefetch(); } }, 5 * 60000);   // nothing runs while the screen is off or the app is in the background
     document.addEventListener('visibilitychange', function () { if (!document.hidden) App.refreshLists(); });
   }
   App.start = start;
