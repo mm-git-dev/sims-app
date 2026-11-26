@@ -10,8 +10,24 @@
   function boxHtml(d) {
     if (!d.found) return noList(d.status);
     return '<div class="card"><div class="row between"><div><div class="muted small">Case No</div><div class="mono bold" style="font-size:26px">' + esc(d.caseNo) + '</div></div></div>' +
-      '<div class="small muted" style="margin-top:6px">' + d.lines.length + ' parts · ' + d.total + ' pieces · ' + d.invoices.length + ' invoice' + (d.invoices.length === 1 ? '' : 's') + ' · packing list uploaded ' + esc(stamp(d.uploadedAt)) + '</div></div>' +
-      '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th><th>Invoice</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td><td class="mono">' + esc(l.invoice) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      '<div id="bxShip" style="margin-top:10px"></div></div>' +
+      '<div class="card tscroll"><table class="dt"><thead><tr><th>Part</th><th>Description</th><th>Qty</th></tr></thead><tbody>' + d.lines.map(function (l) { return '<tr><td class="mono">' + App.partLink(l.part) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+  }
+  // which invoice this box belongs to, and the docket(s) it travelled in: status, expected or arrival date (links to both pages)
+  function shipInfo(view, d) {
+    var inv = d.invoices && d.invoices[0], box = $('#bxShip', view);
+    if (!inv || !box || !(App.can('searchDockets') || App.can('transitList') || App.can('combinedGrn'))) return;
+    function fill(v) {
+      box = $('#bxShip', view); if (!box || !v || !v.found) return;
+      var NOW = Date.now();
+      box.innerHTML = '<div class="small muted">Invoice</div><div class="bold mono" style="font-size:19px;margin-bottom:8px">' + App.invLink(inv) + '</div>' +
+        v.dockets.map(function (g) {
+          if (g.notBooked) return '<div class="item"><div class="grow"><div class="bold">Not booked yet</div></div></div>';
+          var sub = g.arrivedAt ? 'Arrived ' + esc(stamp(g.arrivedAt)) : 'LR date ' + (g.lrDate ? esc(C.fmtDay(g.lrDate)) : '—') + ' · Expected ' + (g.expected ? esc(C.fmtDay(g.expected)) + (g.expected < NOW ? ' (late)' : '') : '—');
+          return '<div class="item"><div class="grow"><div class="small muted">Docket (LR)</div><div class="bold mono" style="font-size:19px">' + App.lrLink(g.lr) + '</div><div class="small muted">' + sub + '</div></div>' + App.statusChip(g.status) + '</div>';
+        }).join('');
+    }
+    App.swr('invoice:' + inv, function () { return api('invoiceDetails', { q: inv }); }, fill, { silent: true, noStatus: true });
   }
   App.pages.box = {
     render: function (view, r) {
@@ -22,6 +38,7 @@
           // same small button as on the part page, under the contents
           view.innerHTML = boxHtml(d) + '<div class="row" style="margin-top:14px"><button class="btn pri' + (App.canScan() ? '' : ' hide') + '" id="bxScan">Scan next box</button></div>';
           $('#bxScan', view).onclick = function () { App.scan({ mode: 'route' }); };
+          if (d.found) shipInfo(view, d);
           App.feedback(!!d.found);
         });
       }
