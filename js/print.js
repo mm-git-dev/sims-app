@@ -81,7 +81,7 @@ var SIMSPrint = (function () {
       },
       trailerH: 6 + 6 + 2 + 5.5 * (inv.length + 1) + 1,
       trailerHtml: function () {
-        return '<div class="sp-grnremark">GRN REMARK: ' + esc(d.remark) + '</div><table class="sp-inv"><colgroup><col style="width:62%"><col style="width:38%"></colgroup>' +
+        return '<div class="sp-grnremark">POD REMARK: ' + esc(d.remark) + '</div><table class="sp-inv"><colgroup><col style="width:62%"><col style="width:38%"></colgroup>' +
           '<thead><tr><th>Invoice No</th><th>GRN No</th></tr></thead><tbody>' + inv.map(function (i) { return '<tr><td>' + esc(i) + '</td><td></td></tr>'; }).join('') + '</tbody></table>';
       }
     });
